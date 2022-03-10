@@ -1,5 +1,5 @@
 Package: PicMin
-Title: PicMin (One Line, Title Case)
+Title: PicMin
 Version: 0.0.0.9000
 Authors@R: 
     person("Tom", "Booker", , "booker@zoology.ubc.ca", role = c("aut", "cre"),

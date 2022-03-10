@@ -5,7 +5,7 @@ orderStatsPValues <- function(p_list){
   ## This function returns a list of the p-values for each of marginal p-values
   # sort the list of $p$-values
   p_sort <- sort(p_list)[2:length(p_list)]
-  # calculate the number of species minus 1 
+  # calculate the number of species minus 1
   n = length(p_sort)
   # get a vector of the 'a' parameters for each of the marginal distributions
   the_as = 1:length(p_sort)
@@ -19,16 +19,17 @@ orderStatsPValues <- function(p_list){
 #' @title Generate data under the null hypothesis
 #' @param pList the vector of p-values from your genome scans
 #' @param correlationMatrix the correlation matrix under the null hypothesis
-#' @param numReps the number of replicate draws to perform when building the empirical distributing for calculating the Tippett p-value 
+#' @param numReps the number of replicate draws to perform when building the empirical distributing for calculating the Tippett p-value
 #' @importFrom "poolr" "tippett"
-PicMin <- function(pList, correlationMatrix, numReps = 100000){
+PicMin <- function(pList, correlationMatrix){
   # Calculate the p-value for the order statistics
   ord_stats_p_values <- orderStatsPValues(pList)
   # Apply the Tippett/Dunn-Sidak Correction
-  p_value <- tippett(ord_stats_p_values, adjust = "empirical", 
-                     R = correlationMatrix, 
-                     side = 1, 
-                     size = numReps)$p
+  p_value <- tippett(ord_stats_p_values, adjust = "empirical",
+                     R = correlationMatrix,
+                     side = 1,
+                     size = size = c(1000, 10000, 100000, 5000000),
+                     threshold = c(.10, .01, 0.001))$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }
@@ -43,9 +44,9 @@ PicMin <- function(pList, correlationMatrix, numReps = 100000){
 #' @param genes the number of genes in the genome use to calculate empirical p-values
 #' @importFrom "stats" "rbeta"
 GenerateNullData <- function(adaptation_screen, a, b, n, genes){
-  temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) ) 
+  temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) )
   while (sum(temp<adaptation_screen)==0){
-    temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) ) 
+    temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) )
   }
   return(temp)
 }

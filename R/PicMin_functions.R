@@ -28,8 +28,7 @@ PicMin <- function(pList, correlationMatrix){
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,
                      side = 1,
-                     size = 100000,
-                     threshold = c(.10, .01, 0.001))$p
+                     size = 100000)$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }

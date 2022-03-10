@@ -57,7 +57,7 @@ GenerateNullData <- function(adaptation_screen, a, b, n, genes){
 #' @param large_i_small_p Do you want large values to have small p-values (e.g. Fst)?
 EmpiricalPs <- function( vector_of_values, large_i_small_p = FALSE ){
   if  (large_i_small_p==FALSE){
-    1-(1+rank(vector_of_values))/length(vector_of_values)
+    1-(rank(vector_of_values))/length(vector_of_values)
   }
   else{
     rank(vector_of_values)/length(vector_of_values)

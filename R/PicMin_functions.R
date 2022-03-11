@@ -21,14 +21,14 @@ orderStatsPValues <- function(p_list){
 #' @param correlationMatrix the correlation matrix under the null hypothesis
 #' @param numReps the number of replicate draws to perform when building the empirical distributing for calculating the Tippett p-value
 #' @importFrom "poolr" "tippett"
-PicMin <- function(pList, correlationMatrix){
+PicMin <- function(pList, correlationMatrix, numReps = 100000){
   # Calculate the p-value for the order statistics
   ord_stats_p_values <- orderStatsPValues(pList)
   # Apply the Tippett/Dunn-Sidak Correction
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,
                      side = 1,
-                     size = 100000)$p
+                     size = numReps)$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }

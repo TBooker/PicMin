@@ -26,7 +26,7 @@ __________________
 
 We have data for 7 lineages of Arabidopsis, 5 from A. halleri and 2 from A. arenosa. The data come from the great study by Bohutinská et al (2021) published in PNAS (https://doi.org/10.1073/pnas.2022713118) - this paper is seriously cool! 
 
-For each of the 7 lineages, we have Fst calculated in 1Kbp non-overlapping windows of the genome. Each of the 7 lineages were analysed using the same reference genome (A. lyrata), so we can compare genome scan results very easily across lineages. We only include data for a single scaffold to make the analysis go faster.
+For each of the 7 lineages, we have Fst calculated in 1Kbp non-overlapping windows of the genome. Each of the 7 lineages were analysed using the same reference genome (A. lyrata), so we can compare genome scan results very easily across lineages. We only include data for a single scaffold (scaffold_5) to make the analysis go faster.
 
 For the sake of this vignette, we are not going to focus on the biology so much as the actual implementation of the analysis (I'd probably get the biology wrong anyway!) I won't use the actual lineage names as they are not really relevant for the demonstration of the method.
 
@@ -53,29 +53,19 @@ str(lin_1)
 ```
 There's a lot of information there, but for this analysis, we'll only both with the data in the FstH column. This corresponds to Hudson's method for calculating Fst. 
 
-We now need to calculate empirical p-values from FstH for each lineage.  
-
-Here's a quick function for doing just that:
-
-```{r empirical_p_function}
-## quick function for calculating empirical p-values
-
-empirical_ps <- function( vector_of_values ){
-  1-rank(vector_of_values)/length(vector_of_values)
-}
-```
+We now need to calculate empirical p-values from FstH for each lineage. Typically, extremely large values of Fst can be used as a line of evidence that a particular region of the genome is subject to adaptation (in the context of a study of local adaptation), so we would want to calculate empirical p-values giving large Fst values small empirical p-values. Other summary statistics, such as nucleotide diversity $\pi$ may be interpreted in the opposite way (small values of $\pi$ provide evidence for adapation). There is a flag that can be passed to the ```EmpiricalPs``` function in R to implement that.
 
 Calculate empirical p-values:
 
 ```{r get_empirical_p}
 
-lin_1$emp_p <- empirical_ps(lin_1$FstH)
-lin_2$emp_p <- empirical_ps(lin_2$FstH)
-lin_3$emp_p <- empirical_ps(lin_3$FstH)
-lin_4$emp_p <- empirical_ps(lin_4$FstH)
-lin_5$emp_p <- empirical_ps(lin_5$FstH)
-lin_6$emp_p <- empirical_ps(lin_6$FstH)
-lin_7$emp_p <- empirical_ps(lin_7$FstH)
+lin_1$emp_p <- PicMin:::EmpiricalPs(lin_1$FstH)
+lin_2$emp_p <- PicMin:::EmpiricalPs(lin_2$FstH)
+lin_3$emp_p <- PicMin:::EmpiricalPs(lin_3$FstH)
+lin_4$emp_p <- PicMin:::EmpiricalPs(lin_4$FstH)
+lin_5$emp_p <- PicMin:::EmpiricalPs(lin_5$FstH)
+lin_6$emp_p <- PicMin:::EmpiricalPs(lin_6$FstH)
+lin_7$emp_p <- PicMin:::EmpiricalPs(lin_7$FstH)
 
 ```
 
@@ -153,7 +143,7 @@ _______________________________
 
 # Run PicMin on 7 Lineages
 
-When running PicMin one needs to specify the alpha_adapt parameter. This parameter is used to screen out loci that do not exhibit evidence of being involved in adaptation in any lineage.Note that the use of PicMin assumes that the genome scan being used provides a test for adaptation!
+When running PicMin one needs to specify the $\alpha_{Adapt}$ parameter. This parameter is used to screen out loci that do not exhibit evidence of being involved in adaptation in any lineage.Note that the use of PicMin assumes that the genome scan being used provides a test for adaptation! In the paper we show that $\alpha_{Adapt} = 0.05$ is appropriate for a test of 7 lineages, so we'll go with that.
 
 When dealing with real data one will frequently encounter loci that are not present in all lineages. This is easy to deal with in PicMin, we just analyse different levels of missing data separately. 
 
@@ -161,12 +151,12 @@ In the following, we start by analyzing all loci that are present in exactly 7 l
 _____________________
 
 The first step is to construct the correlation matrix - the input to poolr
-```{r run_PicMin_all}
+
+```{r run_PicMin_constructMatrix}
 
 alpha_a = 0.05
 nLins = 7
-numReps = 1000
-n = 7 # corresponds to the number of lineages present
+n = 7 # corresponds to the number of lineages present (i.e. no missing data)
 
 # Run 10,000 replicate simulations of this situation and build the correlation matrix for the order statistics from them
 emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, 10000)))
@@ -181,9 +171,134 @@ head(emp_p_null_dat_unscaled)
 null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
 null_pMax_cor_unscaled
 ```
-With this correlaton 
 
-, then do 5, 6 and then 7. The levels of missing data that are being analysed are iterated over in the loop:
+With this correlation matrix we can analyse loci that have data in all 7 lineages. 
+
+_______________________
+
+
+Now we will run PicMin on each of the loci that have no missing data. First, we screen out all loci that have no evidence for adaptation in any lineage:
+
+```{r runPicMin_7_lineages}
+
+# Screen out gene with no evidence for adaptation
+lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
+
+# Select the loci that have data for exactly 7 lineages
+lins_p_7_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+
+# Make some containers for the PicMin results
+resulting_p <- rep(-1,
+             nrow(lins_p_7_screened))
+resulting_n <- rep(-1,
+             nrow(lins_p_7_screened))
+
+numReps = 1000 # This is an important parameter - the larger the better, but larger values mean longer run times.
+
+# For each of the lines in the dataframe, perform PicMin
+for (i in seq(nrow(lins_p_7_screened)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_7_screened[i,]),
+                                   null_pMax_cor_unscaled, 
+                                   numReps = numReps)
+    # Store the p-value
+    resulting_p[i] <- test_result$p
+    resulting_n[i] <- test_result$config_est
+}
+
+
+lins_p_7_screened = data.frame(numLin = n ,
+                                p = resulting_p,
+                                q = p.adjust(resulting_p, method = "fdr"),
+                                n_est = resulting_n,
+                                locus = row.names(lins_p_7_screened) )
+
+
+picMin_results <- cbind( lins_p_7_screened,
+                         read.csv(text=lins_p_7_screened$locus, 
+                                  header=FALSE, 
+                                  sep = "_",
+                                  col.names=c('redundan','scaffold','start'))
+)
+```
+
+That will have taken a couple of minutes to run. Once it's done, let's plot the result:
+
+```{r Plot_n_7_results}
+library(ggplot2)
+library(cowplot)
+
+col_pal <- c("#fcbe57", "#8ec641", "#897696", "#e93826", "#13a4f5", "#f89b56")
+
+
+ggplot(data = picMin_results,
+       aes(x = start/1e6,
+           y = -log10(p),
+           fill = factor(n_est)))+
+  geom_point(shape = 21,
+             size = 4)+
+  geom_hline(aes(yintercept = -log10(0.05)),
+             lty=2)+
+  facet_wrap(~scaffold,
+             ncol = 4,
+             scales = "free_x")+
+  scale_fill_manual("Number of\nLineages\n",values = col_pal)+
+  scale_y_continuous(expression(-log[10]*"(p-value)"))+
+  scale_x_continuous("Position in Scaffold (Mbp)")+
+  theme_half_open() +
+  theme(strip.background = element_blank())+
+  background_grid()# always place this after the theme
+
+```
+
+A lovely Manhattan plot - lots of nice pretty colors. 
+
+However, you'll notice that the maximum value on the y-axis seems to be repeated a little more than you might expect. This is down to the ```numReps``` parameter. What this number represents is the number of samples used to built an empirical null distribution. If you only sample 1000 values, the smallest p-value would, on average, be just shy of 1/1000. Increasing the  ```numReps``` parameter will result in more precision when computing *p*-values - but it comes at the cost of increased run times. Let's re-run the above, but increase the```numReps``` parameter.
+
+**This takes a while to run, so go grab a coffee or something**
+
+```{r runPicMin_7lins_100000reps}
+
+# Screen out gene with no evidence for adaptation
+lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
+
+# Select the loci that have data for exactly 7 lineages
+lins_p_7_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+
+# Make some containers for the PicMin results
+resulting_p <- rep(-1,
+             nrow(lins_p_7_screened))
+resulting_n <- rep(-1,
+             nrow(lins_p_7_screened))
+
+numReps = 100000 ## 100x larger than before
+
+# For each of the lines in the dataframe, perform PicMin
+for (i in seq(nrow(lins_p_7_screened)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_7_screened[i,]),
+                                   null_pMax_cor_unscaled, 
+                                   numReps = numReps)
+    # Store the p-value
+    resulting_p[i] <- test_result$p
+    resulting_n[i] <- test_result$config_est
+}
+
+
+lins_p_7_screened = data.frame(numLin = n ,
+                                p = resulting_p,
+                                q = p.adjust(resulting_p, method = "fdr"),
+                                n_est = resulting_n,
+                                locus = row.names(lins_p_7_screened) )
+
+
+picMin_results <- cbind( lins_p_7_screened,
+                         read.csv(text=lins_p_7_screened$locus, 
+                                  header=FALSE, 
+                                  sep = "_",
+                                  col.names=c('redundan','scaffold','start'))
+)
+```
+
+Now let's plot the result...
 
 
 ```{r}

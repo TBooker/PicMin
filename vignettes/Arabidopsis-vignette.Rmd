@@ -1,0 +1,242 @@
+---
+title: "Analysis of Arabidopsis data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{my-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(PicMin)
+library(tidyverse)
+library(poolr)
+```
+
+In this Vignette, we'll walk through a PicMin analysis.
+
+__________________
+
+We have data for 7 lineages of Arabidopsis, 5 from A. halleri and 2 from A. arenosa. The data come from the great study by Bohutinská et al (2021) published in PNAS (https://doi.org/10.1073/pnas.2022713118) - this paper is seriously cool! 
+
+For each of the 7 lineages, we have Fst calculated in 1Kbp non-overlapping windows of the genome. Each of the 7 lineages were analysed using the same reference genome (A. lyrata), so we can compare genome scan results very easily across lineages. We only include data for a single scaffold to make the analysis go faster.
+
+For the sake of this vignette, we are not going to focus on the biology so much as the actual implementation of the analysis (I'd probably get the biology wrong anyway!) I won't use the actual lineage names as they are not really relevant for the demonstration of the method.
+
+We're going to conduct two analyses. In the first, we are going to apply PicMin to results for the 7 lineages all together. This is largely how PicMin is described in the paper. One can also use PicMin to analyse pairs of species - we'll implement that as well. 
+
+__________________
+
+For both analyses, the first thing to do is to calculate empirical p-values from the Fst results for each lineage. If one had an appropriate null model and were able to calculate accurate p-values, those could be used, but we'll just use empirical p-values here.
+
+## Read in data for each lineage
+
+Let's read in the data for each lineage:
+
+```{r read_data}
+lin_1 <- read.csv("lineage_1.csv")
+lin_2 <- read.csv("lineage_2.csv")
+lin_3 <- read.csv("lineage_3.csv")
+lin_4 <- read.csv("lineage_4.csv")
+lin_5 <- read.csv("lineage_5.csv")
+lin_6 <- read.csv("lineage_6.csv")
+lin_7 <- read.csv("lineage_7.csv")
+
+str(lin_1)
+```
+There's a lot of information there, but for this analysis, we'll only both with the data in the FstH column. This corresponds to Hudson's method for calculating Fst. 
+
+We now need to calculate empirical p-values from FstH for each lineage.  
+
+Here's a quick function for doing just that:
+
+```{r empirical_p_function}
+## quick function for calculating empirical p-values
+
+empirical_ps <- function( vector_of_values ){
+  1-rank(vector_of_values)/length(vector_of_values)
+}
+```
+
+Calculate empirical p-values:
+
+```{r get_empirical_p}
+
+lin_1$emp_p <- empirical_ps(lin_1$FstH)
+lin_2$emp_p <- empirical_ps(lin_2$FstH)
+lin_3$emp_p <- empirical_ps(lin_3$FstH)
+lin_4$emp_p <- empirical_ps(lin_4$FstH)
+lin_5$emp_p <- empirical_ps(lin_5$FstH)
+lin_6$emp_p <- empirical_ps(lin_6$FstH)
+lin_7$emp_p <- empirical_ps(lin_7$FstH)
+
+```
+
+To compare loci across lineage, it'll be useful to have a naming scheme for loci. We'll concatenate the scaffold_id with the position in the reference genome for each window:
+
+
+```{r get_locus_names}
+## quick function for getting names
+
+get_names <- function( lineage_df ){
+  return( paste( lineage_df$scaff, lineage_df$start,
+                 sep = "_") )
+}
+
+lin_1$name <- get_names( lin_1 )
+lin_2$name <- get_names( lin_2 )
+lin_3$name <- get_names( lin_3 )
+lin_4$name <- get_names( lin_4 )
+lin_5$name <- get_names( lin_5 )
+lin_6$name <- get_names( lin_6 )
+lin_7$name <- get_names( lin_7 )
+
+```
+
+Now, we'll make some stripped down dataframes that contain just the locus names and the empirical p-values
+
+```{r minimise_dataframes}
+
+## quick function for minimising the dataframes
+
+min_lin <- function( lineage_df , lineage_name){
+  tmp <- data.frame( emp_p = lineage_df$emp_p,
+                     window = lineage_df$name)
+  names(tmp) <- c(lineage_name,
+                  "window")
+  return( tmp )
+}
+
+lin_1_m <- min_lin( lin_1, "lineage_1" )
+lin_2_m <- min_lin( lin_2, "lineage_2" )
+lin_3_m <- min_lin( lin_3, "lineage_3" )
+lin_4_m <- min_lin( lin_4, "lineage_4" )
+lin_5_m <- min_lin( lin_5, "lineage_5" )
+lin_6_m <- min_lin( lin_6, "lineage_6" )
+lin_7_m <- min_lin( lin_7, "lineage_7" )
+
+```
+
+Now we'll combined the dataframes for each lineage into a single dataframe for running our analysis.
+
+
+```{r merge_dataframes}
+#put all data frames into list
+df_list <- list(lin_1_m,
+                lin_2_m,
+                lin_3_m,
+                lin_4_m,
+                lin_5_m,
+                lin_6_m,
+                lin_7_m)
+
+#merge all data frames in list - use the 'window' variable to merge
+all_lins <- df_list %>% reduce(full_join, by='window')
+# remove the column named "window"
+all_lins_p <- all_lins[ , !(names(all_lins) %in% c("window"))]
+# Use the "window" column as row.names
+rownames(all_lins_p) <- all_lins$window
+
+head(all_lins_p, n = 50)
+```
+
+This dataframe (```all_lins_p```) contains the empirical p-values for each locus in each species' genome. Lineages will have NAs for missing data.
+
+_______________________________
+
+# Run PicMin on 7 Lineages
+
+When running PicMin one needs to specify the alpha_adapt parameter. This parameter is used to screen out loci that do not exhibit evidence of being involved in adaptation in any lineage.Note that the use of PicMin assumes that the genome scan being used provides a test for adaptation!
+
+When dealing with real data one will frequently encounter loci that are not present in all lineages. This is easy to deal with in PicMin, we just analyse different levels of missing data separately. 
+
+In the following, we start by analyzing all loci that are present in exactly 7 lineages. 
+_____________________
+
+The first step is to construct the correlation matrix - the input to poolr
+```{r run_PicMin_all}
+
+alpha_a = 0.05
+nLins = 7
+numReps = 1000
+n = 7 # corresponds to the number of lineages present
+
+# Run 10,000 replicate simulations of this situation and build the correlation matrix for the order statistics from them
+emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, 10000)))
+
+# Calculate the order statistics' p-values for each simulation
+emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, PicMin:::orderStatsPValues))
+
+# Take a look at the p-values - aren't they nice?
+head(emp_p_null_dat_unscaled)
+
+# Use those p-values to construct the correlation matrix
+null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
+null_pMax_cor_unscaled
+```
+With this correlaton 
+
+, then do 5, 6 and then 7. The levels of missing data that are being analysed are iterated over in the loop:
+
+
+```{r}
+count = 0
+results = list()
+for (n in missingDataLevels){
+  count = count + 1
+  # Run 10,000 replicate simulations of this situation and build the correlation matrix
+  emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, 10000)))
+  # Calculate the order statistics p-values for each simulation
+  emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, PicMin:::orderStatsPValues))
+  # Use those p-values to construct the correlation matrix
+  null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
+
+
+  # Screen out gene with no evidence for adaptation
+  lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
+  lins_p_n_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+
+  if (dim(lins_p_n_screened)[1] ==0){
+    next
+  }
+  res_p <- rep(-1,
+               nrow(lins_p_n_screened))
+  res_n <- rep(-1,
+               nrow(lins_p_n_screened))
+
+  for (i in seq(nrow(lins_p_n_screened)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_n_screened[i,]), null_pMax_cor_unscaled, numReps = numReps)
+    res_p[i] <- test_result$p
+    res_n[i] <- test_result$config_est
+  }
+  results[[count]] = data.frame(numLin = n ,
+                                p = res_p,
+                                q = p.adjust(res_p, method = "fdr"),
+                                n_est = res_n,
+                                locus = row.names(lins_p_n_screened) )
+
+}
+
+
+picMin_results <- do.call(rbind, results)
+
+head(picMin_results)
+
+picMin_results$pooled_q <- p.adjust(picMin_results$p, method = "fdr")
+
+
+picMin_results <- cbind( picMin_results,
+                         read.csv(text=picMin_results$locus, header=FALSE,
+                                  sep = "_",
+                                  col.names=c('redundan','scaffold','start'))
+)
+
+```
+

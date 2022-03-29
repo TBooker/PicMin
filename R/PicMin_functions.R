@@ -56,10 +56,10 @@ GenerateNullData <- function(adaptation_screen, a, b, n, genes){
 #' @param vector_of_values A set of summary statistics that you want to convert to empirical p-values
 #' @param large_i_small_p Do you want large values to have small p-values (e.g. Fst)?
 EmpiricalPs <- function( vector_of_values, large_i_small_p = FALSE ){
-  if  (large_i_small_p==FALSE){
-    1-(rank(vector_of_values))/length(vector_of_values)
+  if  (large_i_small_p==TRUE){
+    rank(vector_of_values * -1,na.last = "keep")/sum(is.na (vector_of_values) == F)
   }
   else{
-    rank(vector_of_values)/length(vector_of_values)
+    rank(vector_of_values,na.last = "keep")/sum(is.na (vector_of_values) == F)
   }
 }

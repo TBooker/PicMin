@@ -24,13 +24,11 @@ In this Vignette, we'll walk through a PicMin analysis.
 
 __________________
 
-We have data for 7 lineages of Arabidopsis, 5 from A. halleri and 2 from A. arenosa. The data come from the great study by Bohutinská et al (2021) published in PNAS (https://doi.org/10.1073/pnas.2022713118) - this paper is seriously cool! 
+We have data for 5 lineages of Arabidopsis arenosa. The data come from the great study by Bohutinská et al (2021) published in PNAS (https://doi.org/10.1073/pnas.2022713118) - this paper is seriously cool! For each lineage, Bohutinská et al (2021) sampled pairs of foothill/alpine populations and calculated Fst between them. Fst is a summary statistic that measures genetic differentiation. Larger than average Fst values may indicate genetic loci that are subject to the effects of spatially variation selection, local adaptation. Given that Bohutinská et al (2021) compared foothill/alpine population pairs, one might expect that genes related to thermal tolerance to be involved in local adaptation.
 
-For each of the 7 lineages, we have Fst calculated in 1Kbp non-overlapping windows of the genome. Each of the 7 lineages were analysed using the same reference genome (A. lyrata), so we can compare genome scan results very easily across lineages. We only include data for a single scaffold (scaffold_5) to make the analysis go faster.
+For each of the 5 lineages, we have Fst calculated in 1Kbp non-overlapping windows of the genome. Each of the 5 lineages were analysed using the same reference genome (A. lyrata), so we can compare genome scan results very easily across lineages. We only include data for a single scaffold (scaffold_5) to make the analysis go faster.
 
-For the sake of this vignette, we are not going to focus on the biology so much as the actual implementation of the analysis (I'd probably get the biology wrong anyway!) I won't use the actual lineage names as they are not really relevant for the demonstration of the method.
-
-We're going to conduct two analyses. In the first, we are going to apply PicMin to results for the 7 lineages all together. This is largely how PicMin is described in the paper. One can also use PicMin to analyse pairs of species - we'll implement that as well. 
+We're going to conduct two analyses. In the first, we are going to apply PicMin to results for the 5 lineages all together. This is largely how PicMin is described in the paper. One can also use PicMin to analyse pairs of species - we'll implement that as well. 
 
 __________________
 
@@ -42,14 +40,11 @@ Let's read in the data for each lineage:
 
 ```{r read_data}
 lin_1 <- read.csv("lineage_1.csv")
-lin_2 <- read.csv("lineage_2.csv")
 lin_3 <- read.csv("lineage_3.csv")
-lin_4 <- read.csv("lineage_4.csv")
 lin_5 <- read.csv("lineage_5.csv")
 lin_6 <- read.csv("lineage_6.csv")
 lin_7 <- read.csv("lineage_7.csv")
 
-str(lin_1)
 ```
 There's a lot of information there, but for this analysis, we'll only both with the data in the FstH column. This corresponds to Hudson's method for calculating Fst. 
 
@@ -59,13 +54,12 @@ Calculate empirical p-values:
 
 ```{r get_empirical_p}
 
-lin_1$emp_p <- PicMin:::EmpiricalPs(lin_1$FstH)
-lin_2$emp_p <- PicMin:::EmpiricalPs(lin_2$FstH)
-lin_3$emp_p <- PicMin:::EmpiricalPs(lin_3$FstH)
-lin_4$emp_p <- PicMin:::EmpiricalPs(lin_4$FstH)
-lin_5$emp_p <- PicMin:::EmpiricalPs(lin_5$FstH)
-lin_6$emp_p <- PicMin:::EmpiricalPs(lin_6$FstH)
-lin_7$emp_p <- PicMin:::EmpiricalPs(lin_7$FstH)
+lin_1$emp_p <- PicMin:::EmpiricalPs(lin_1$FstH, large_i_small_p=TRUE)
+lin_3$emp_p <- PicMin:::EmpiricalPs(lin_3$FstH, large_i_small_p=TRUE)
+lin_5$emp_p <- PicMin:::EmpiricalPs(lin_5$FstH, large_i_small_p=TRUE)
+lin_6$emp_p <- PicMin:::EmpiricalPs(lin_6$FstH, large_i_small_p=TRUE)
+lin_7$emp_p <- PicMin:::EmpiricalPs(lin_7$FstH, large_i_small_p=TRUE)
+
 
 ```
 
@@ -81,12 +75,11 @@ get_names <- function( lineage_df ){
 }
 
 lin_1$name <- get_names( lin_1 )
-lin_2$name <- get_names( lin_2 )
 lin_3$name <- get_names( lin_3 )
-lin_4$name <- get_names( lin_4 )
 lin_5$name <- get_names( lin_5 )
 lin_6$name <- get_names( lin_6 )
 lin_7$name <- get_names( lin_7 )
+
 
 ```
 
@@ -105,9 +98,7 @@ min_lin <- function( lineage_df , lineage_name){
 }
 
 lin_1_m <- min_lin( lin_1, "lineage_1" )
-lin_2_m <- min_lin( lin_2, "lineage_2" )
 lin_3_m <- min_lin( lin_3, "lineage_3" )
-lin_4_m <- min_lin( lin_4, "lineage_4" )
 lin_5_m <- min_lin( lin_5, "lineage_5" )
 lin_6_m <- min_lin( lin_6, "lineage_6" )
 lin_7_m <- min_lin( lin_7, "lineage_7" )
@@ -120,9 +111,7 @@ Now we'll combined the dataframes for each lineage into a single dataframe for r
 ```{r merge_dataframes}
 #put all data frames into list
 df_list <- list(lin_1_m,
-                lin_2_m,
                 lin_3_m,
-                lin_4_m,
                 lin_5_m,
                 lin_6_m,
                 lin_7_m)
@@ -141,7 +130,7 @@ This dataframe (```all_lins_p```) contains the empirical p-values for each locus
 
 _______________________________
 
-# Run PicMin on 7 Lineages
+# Run PicMin on 5 Lineages
 
 When running PicMin one needs to specify the $\alpha_{Adapt}$ parameter. This parameter is used to screen out loci that do not exhibit evidence of being involved in adaptation in any lineage.Note that the use of PicMin assumes that the genome scan being used provides a test for adaptation! In the paper we show that $\alpha_{Adapt} = 0.05$ is appropriate for a test of 7 lineages, so we'll go with that.
 
@@ -155,8 +144,8 @@ The first step is to construct the correlation matrix - the input to poolr
 ```{r run_PicMin_constructMatrix}
 
 alpha_a = 0.05
-nLins = 7
-n = 7 # corresponds to the number of lineages present (i.e. no missing data)
+nLins = 5
+n = 5 # corresponds to the number of lineages present (i.e. no missing data)
 
 # Run 10,000 replicate simulations of this situation and build the correlation matrix for the order statistics from them
 emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, 10000)))
@@ -172,32 +161,32 @@ null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
 null_pMax_cor_unscaled
 ```
 
-With this correlation matrix we can analyse loci that have data in all 7 lineages. 
+With this correlation matrix we can analyse loci that have data in all 5 lineages. 
 
 _______________________
 
 
 Now we will run PicMin on each of the loci that have no missing data. First, we screen out all loci that have no evidence for adaptation in any lineage:
 
-```{r runPicMin_7_lineages}
+```{r runPicMin_5_lineages}
 
 # Screen out gene with no evidence for adaptation
 lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
 
 # Select the loci that have data for exactly 7 lineages
-lins_p_7_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+lins_p_5_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
 
 # Make some containers for the PicMin results
 resulting_p <- rep(-1,
-             nrow(lins_p_7_screened))
+             nrow(lins_p_5_screened))
 resulting_n <- rep(-1,
-             nrow(lins_p_7_screened))
+             nrow(lins_p_5_screened))
 
 numReps = 1000 # This is an important parameter - the larger the better, but larger values mean longer run times.
 
 # For each of the lines in the dataframe, perform PicMin
-for (i in seq(nrow(lins_p_7_screened)) ){
-    test_result <- PicMin:::PicMin(na.omit(lins_p_7_screened[i,]),
+for (i in seq(nrow(lins_p_5_screened)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_5_screened[i,]),
                                    null_pMax_cor_unscaled, 
                                    numReps = numReps)
     # Store the p-value
@@ -206,15 +195,15 @@ for (i in seq(nrow(lins_p_7_screened)) ){
 }
 
 
-lins_p_7_screened = data.frame(numLin = n ,
+lins_p_5_screened = data.frame(numLin = n ,
                                 p = resulting_p,
                                 q = p.adjust(resulting_p, method = "fdr"),
                                 n_est = resulting_n,
-                                locus = row.names(lins_p_7_screened) )
+                                locus = row.names(lins_p_5_screened) )
 
 
-picMin_results <- cbind( lins_p_7_screened,
-                         read.csv(text=lins_p_7_screened$locus, 
+picMin_results <- cbind( lins_p_5_screened,
+                         read.csv(text=lins_p_5_screened$locus, 
                                   header=FALSE, 
                                   sep = "_",
                                   col.names=c('redundan','scaffold','start'))
@@ -223,11 +212,11 @@ picMin_results <- cbind( lins_p_7_screened,
 
 That will have taken a couple of minutes to run. Once it's done, let's plot the result:
 
-```{r Plot_n_7_results}
+```{r Plot_n_5_results, fig.width=6}
 library(ggplot2)
 library(cowplot)
 
-col_pal <- c("#fcbe57", "#8ec641", "#897696", "#e93826", "#13a4f5", "#f89b56")
+col_pal <- c("white", "#8ec641", "#897696", "#e93826", "#13a4f5", "#f89b56")
 
 
 ggplot(data = picMin_results,
@@ -254,27 +243,29 @@ A lovely Manhattan plot - lots of nice pretty colors.
 
 However, you'll notice that the maximum value on the y-axis seems to be repeated a little more than you might expect. This is down to the ```numReps``` parameter. What this number represents is the number of samples used to built an empirical null distribution. If you only sample 1000 values, the smallest p-value would, on average, be just shy of 1/1000. Increasing the  ```numReps``` parameter will result in more precision when computing *p*-values - but it comes at the cost of increased run times. Let's re-run the above, but increase the```numReps``` parameter.
 
+Also, the raw *p*- values are probably not appropriate for this analysis, probably you should do a correction for multiple comparisons. I would recommend false discovery rate correction (i.e. the Benjamini-Hochberg procedure).
+
 **This takes a while to run, so go grab a coffee or something**
 
-```{r runPicMin_7lins_100000reps}
+```{r runPicMin_5lins_100000reps, fig.width=6}
 
 # Screen out gene with no evidence for adaptation
 lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
 
 # Select the loci that have data for exactly 7 lineages
-lins_p_7_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+lins_p_5_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
 
 # Make some containers for the PicMin results
 resulting_p <- rep(-1,
-             nrow(lins_p_7_screened))
+             nrow(lins_p_5_screened))
 resulting_n <- rep(-1,
-             nrow(lins_p_7_screened))
+             nrow(lins_p_5_screened))
 
 numReps = 100000 ## 100x larger than before
 
 # For each of the lines in the dataframe, perform PicMin
-for (i in seq(nrow(lins_p_7_screened)) ){
-    test_result <- PicMin:::PicMin(na.omit(lins_p_7_screened[i,]),
+for (i in seq(nrow(lins_p_5_screened)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_5_screened[i,]),
                                    null_pMax_cor_unscaled, 
                                    numReps = numReps)
     # Store the p-value
@@ -283,31 +274,77 @@ for (i in seq(nrow(lins_p_7_screened)) ){
 }
 
 
-lins_p_7_screened = data.frame(numLin = n ,
+lins_p_5_screened = data.frame(numLin = n ,
                                 p = resulting_p,
                                 q = p.adjust(resulting_p, method = "fdr"),
                                 n_est = resulting_n,
-                                locus = row.names(lins_p_7_screened) )
+                                locus = row.names(lins_p_5_screened) )
 
 
-picMin_results <- cbind( lins_p_7_screened,
-                         read.csv(text=lins_p_7_screened$locus, 
+picMin_results <- cbind( lins_p_5_screened,
+                         read.csv(text=lins_p_5_screened$locus, 
                                   header=FALSE, 
                                   sep = "_",
                                   col.names=c('redundan','scaffold','start'))
 )
+
+
+ggplot(data = picMin_results,
+       aes(x = start/1e6,
+           y = -log10(q),
+           fill = factor(n_est)))+
+  geom_point(shape = 21,
+             size = 4)+
+  geom_hline(aes(yintercept = -log10(0.05)),
+             lty=2)+
+  facet_wrap(~scaffold,
+             ncol = 4,
+             scales = "free_x")+
+  scale_fill_manual("Number of\nLineages\n",values = col_pal)+
+  scale_y_continuous(expression(-log[10]*"(q-value)"))+
+  scale_x_continuous("Position in Scaffold (Mbp)")+
+  theme_half_open() +
+  theme(strip.background = element_blank())+
+  background_grid()# always place this after the theme
+
 ```
 
-Now let's plot the result...
+Whoa! What's that point that's peeping up above the genome-wide significance threshold? I've coloured the points by the estiamted number of species exhibiting a pattern of repeated evolution. As you can see, the point above the line has an estimated number of lineages of 5 (out of 5) showing repeated adaptation. How cool is that?!
 
+Let's look into this hit a little bit more... 
+```{r investigateHit}
 
-```{r}
+picMin_results[picMin_results$q <0.05,]$locus
+
+```
+
+This locus corresponds to positions 11157000-11158000 on scaffold 5 in the A. lyrata genome. This locus actually overlaps a protein-coding gene in the A. lyrata genome:
+
+```
+scaffold_5	version-2	gene	11155010	11158866	0.71	+	.	ID=AL5G22700;Name=AL5G22700;Note=Protein_Coding_gene
+
+```
+
+Looking on https://phytozome-next.jgi.doe.gov/, it looks as if protein-coding gene AL5G22700 is an alias for AT3G44550, which is a Fatty acyl-CoA reductase (FAR). Actually this particular gene is FAR5. What's cool about that is that FAR5 is involved in suberin deposition (Domergue et al 2010 - Plant Phys.). Suberin is a key component of plant cell walls, which in turn are important in the cold stress response (Shepherd and Griffiths 2006 - New Phyt.). Given that the populations being compared for each lineage are alpine/foothill population pairs, this is a very intriguing result!!
+
+__________________
+
+Back on the stats, you'll see that this time we actually plotted the FDR corrected p-value (the q-value) on the y-axis. 
+
+## Analysing loci with missing data
+
+At this point, we have excluded a lot of data at this point, as we have only analysed loci with results for 5 out of 5 lineages. In the next step, we'll run the analysis on different levels of missing data - I would not suggest analysing data that is only present in only 2 lineages. The way we recommend analysing pairs of species will be covered below.
+
+```{r, fig.width=6}
 count = 0
 results = list()
+missingDataLevels=c(3,4,5)
+numReps = 100000
+
 for (n in missingDataLevels){
   count = count + 1
   # Run 10,000 replicate simulations of this situation and build the correlation matrix
-  emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, 10000)))
+  emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, numReps)))
   # Calculate the order statistics p-values for each simulation
   emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, PicMin:::orderStatsPValues))
   # Use those p-values to construct the correlation matrix
@@ -353,5 +390,257 @@ picMin_results <- cbind( picMin_results,
                                   col.names=c('redundan','scaffold','start'))
 )
 
+
+
+ggplot(data = picMin_results,
+       aes(x = start/1e6,
+           y = -log10(pooled_q),
+           fill = factor(n_est)))+
+  geom_point(shape = 21,
+             size = 4)+
+  geom_hline(aes(yintercept = -log10(0.05)),
+             lty=2)+
+  scale_fill_manual("Number of\nLineages\n",values = col_pal)+
+  scale_y_continuous(expression(-log[10]*"(q-value)"))+
+  scale_x_continuous("Position in Scaffold (Mbp)")+
+  theme_half_open() +
+  theme(strip.background = element_blank())+
+  background_grid()# always place this after the theme
+
+
 ```
+
+It does not look as if there are any strikingly large signals of repeated adaptation many loci other than the FAR5 locus we already discussed. Remember though, that we are only looking at a single scaffold for the sake of this vignette, other scaffolds may have had interesting results. 
+
+# Analysing pairs of lineages using PicMin
+
+If you read the paper describing PicMin, you may have noticed how little power the method has to identify repeated adaptation between pairs of populations. Remember, that the primary aim of PicMin is to identify genes or genomic regions with evidence for repeated adaptation. In this context, PicMin has little power for pairs of lineages. However, if we want to evaluate the overall evidence for convergent evolution genome-wide, we might take a different approach PicMin can do that too!
+
+Let's look at a particular pair of lineages from the Bohutinská et al (2021) dataset, lineage_1 and lineage_3. 
+
+Let's estimate of the number of genes that have evidence for repeated adaptation at the level of the genome:
+
+________________________
+
+
+```{r twoWay}
+# In this first step we build a matrix of the empirical p-values for the two populations 
+population_pair <- as.matrix( cbind(all_lins_p$lineage_1, all_lins_p$lineage_3))
+
+# Second, we remove any rows with NAs - we can't analyse them in this 2-lineage world.
+population_pair_clean <- na.omit(population_pair)
+
+# Third, we sort each row of the matrix .
+population_pair_sorted <- t(apply(population_pair_clean, 1, sort))
+
+# Fourth, we screen out the loci where the lower of the two p-values is greater than alpha_adapt
+alpha_adapt <- 0.01
+
+population_pair_alpha_adapt <- population_pair_sorted[population_pair_sorted[,1]<alpha_adapt,]
+
+# Finally, we ask "how many of the genes have evidence for repeated adaptation?"
+alpha_repeated <- 0.05
+population_pair_alpha_repeated <- population_pair_alpha_adapt[population_pair_alpha_adapt[,2]<alpha_repeated,]
+
+nRepeated <- nrow( population_pair_alpha_repeated )
+nRepeated
+```
+
+So there are 40 loci that have evidence of repeated adaptation. But, that number will also include some fraction of expected genes. So, how many did we expect to begin with? Let's find out...
+
+```{r twoWay_null}
+
+# A simple expectation would be something like:
+2*nrow(population_pair_sorted)*alpha_adapt*alpha_repeated
+
+# Our estimate for the number of loci with evidence for repeated adaptation is:
+nRepeated - 2*nrow(population_pair_sorted)*alpha_adapt*alpha_repeated
+```
+
+So 27 loci. Is that number significant? Let's do a binomial.test test to find out. 
+
+```{r twoWay_permute}
+# Let's start by wrapping the above two-way analysis into functions...
+
+twoWay_pValues <- function(pop1, pop2, permute = FALSE){
+  
+  pValuePair <- t(apply(na.omit( as.matrix( cbind(pop1, pop2)) ), 1, sort))
+
+  if (permute == FALSE){
+    return( pValuePair) 
+  }
+  else if(permute == TRUE){
+    pValuePair_shuff <- cbind(sample(pValuePair[,1]), sample(pValuePair[,2]))
+    return( pValuePair_shuff)
+  }
+
+}
+
+
+twoWay_PicMin <- function(p1, p2, alphaAdapt, alphaRepeated, permute_flag = FALSE){
+  
+  twoWay_pVals <- twoWay_pValues( p1, p2, permute = permute_flag)
+  
+  hits <-  nrow( twoWay_pVals[(twoWay_pVals[,1]<alphaAdapt)&(twoWay_pVals[,2]<alphaRepeated),] )
+  
+  nGenes <- nrow(twoWay_pVals)
+  
+  return(
+    list(raw=hits,
+       expected=(2*0.05*0.01*nGenes),
+       estimate=hits-(2*0.05*0.01*nGenes),
+       # Here we implement a little binomial test on the result
+       p_value=binom.test(hits, nGenes, 2*alphaAdapt*alphaRepeated)$p.value)
+  )
+}
+
+twoWay_PicMin( all_lins_p$lineage_1, all_lins_p$lineage_3,
+                                        0.01, 0.05)
+
+```
+
+Yep, there is a very strong signal of statistical significance between lineage_1 and lineage_3. There is an estiamted 27 loci with a pattern of repeated adaptation. Of course, one would follow this analysis up by examining patterns of linkage diseqiulibrium among the hits - hitchhiking may cause tightly linked sites to exhibit similar signals, you should examine that.
+
+You'll also note that it would be impossible to distinguish false from true negatives within the 40 genes that were identified - that's where the multi-species version of PicMin differs from this two-way analysis. 
+
+It's worth noting that this two-way version of PicMin is mathematically identical to the multi-species PicMin, it's just analysing 2 lineages at a time rather than all 5 lineages. 
+________________________
+
+## Bonus Plot
+
+Just for fun, let's look at all pairwise comparisons and plot out the result...
+
+```{r allTwoWayResults}
+
+lineage_1_v_lineage_3 <- twoWay_PicMin( all_lins_p$lineage_1, all_lins_p$lineage_3,
+                                        0.01, 0.05)
+lineage_1_v_lineage_3$pasted_name <- paste(
+  strsplit(lin_1$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_3$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_1_v_lineage_5 <- twoWay_PicMin( all_lins_p$lineage_1, all_lins_p$lineage_5,
+                                        0.01, 0.05)
+lineage_1_v_lineage_5$pasted_name <- paste(
+  strsplit(lin_1$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_5$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_1_v_lineage_6 <- twoWay_PicMin( all_lins_p$lineage_1, all_lins_p$lineage_6,
+                                        0.01, 0.05)
+lineage_1_v_lineage_6$pasted_name <- paste(
+  strsplit(lin_1$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_6$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_1_v_lineage_7 <- twoWay_PicMin( all_lins_p$lineage_1, all_lins_p$lineage_7,
+                                        0.01, 0.05)
+lineage_1_v_lineage_7$pasted_name <- paste(
+  strsplit(lin_1$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_7$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_3_v_lineage_5 <- twoWay_PicMin( all_lins_p$lineage_3, all_lins_p$lineage_5,
+                                        0.01, 0.05)
+lineage_3_v_lineage_5$pasted_name <- paste(
+  strsplit(lin_3$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_5$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_3_v_lineage_6 <- twoWay_PicMin( all_lins_p$lineage_3, all_lins_p$lineage_6,
+                                        0.01, 0.05)
+lineage_3_v_lineage_6$pasted_name <- paste(
+  strsplit(lin_3$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_6$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_3_v_lineage_7 <- twoWay_PicMin( all_lins_p$lineage_3, all_lins_p$lineage_7,
+                                        0.01, 0.05)
+lineage_3_v_lineage_7$pasted_name <- paste(
+  strsplit(lin_3$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_7$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_5_v_lineage_6 <- twoWay_PicMin( all_lins_p$lineage_5, all_lins_p$lineage_6,
+                                        0.01, 0.05)
+lineage_5_v_lineage_6$pasted_name <- paste(
+  strsplit(lin_5$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_6$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_5_v_lineage_7 <- twoWay_PicMin( all_lins_p$lineage_5, all_lins_p$lineage_7,
+                                        0.01, 0.05)
+lineage_5_v_lineage_7$pasted_name <- paste(
+  strsplit(lin_5$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_7$outname, "_")[[1]][1],
+  sep ='')
+
+lineage_6_v_lineage_7 <- twoWay_PicMin( all_lins_p$lineage_7, all_lins_p$lineage_7,
+                                        0.01, 0.05)
+lineage_6_v_lineage_7$pasted_name <- paste(
+  strsplit(lin_6$outname, "_")[[1]][1],
+  "_",
+  strsplit(lin_7$outname, "_")[[1]][1],
+  sep ='')
+
+pairwise_results <- rbind(data.frame(lineage_1_v_lineage_3),
+      data.frame(lineage_1_v_lineage_5),
+      data.frame(lineage_1_v_lineage_6),
+      data.frame(lineage_1_v_lineage_7),
+      data.frame(lineage_3_v_lineage_5),
+      data.frame(lineage_3_v_lineage_6),
+      data.frame(lineage_3_v_lineage_7),
+      data.frame(lineage_5_v_lineage_6),
+      data.frame(lineage_5_v_lineage_7),
+      data.frame(lineage_6_v_lineage_7))
+
+
+```
+
+
+```{r plotPairWise, fig.width=6}
+
+library(ggplot2)
+library(devtools)
+#remotes::install_github("coolbutuseless/ggpattern")
+library(ggpattern)
+
+pairwise_results_sig <- pairwise_results[pairwise_results$p_value<0.01,]
+
+PairwisePlot <- ggplot(data = pairwise_results, aes(y =pasted_name, x = raw ))+
+  geom_bar(stat= "identity", fill = "lightgrey", col = "black")+
+  geom_bar_pattern(stat= "identity", aes( x = expected), fill = "lightgrey",
+                   position = position_dodge(preserve = "single"),
+                   color = "black", 
+                   pattern_fill = "black",
+                   pattern_angle = 45,
+                   pattern_density = 0.1,
+                   pattern_spacing = 0.025,
+                   pattern_key_scale_factor = 0.6) + 
+  geom_point(data = pairwise_results_sig, aes(y =pasted_name, x = raw+5 ), 
+             stat = "identity",
+             shape = 8)+
+  labs(x = "Number of Overlapping Loci",
+       y = NULL)+
+  theme_bw()+
+  theme(
+    strip.background.x = element_rect(fill = "white"),
+    strip.text.x = element_text(face = "bold", size = 12),
+    axis.text.y = element_text(face = "italic", size = 10),
+    axis.text.x= element_text( size = 10)
+  )
+PairwisePlot
+```
+
+
+
 

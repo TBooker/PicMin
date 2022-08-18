@@ -85,7 +85,7 @@ GenerateNullData <- function(adaptation_screen, n, a = 0.3, b = 5, genes = 20000
     temp <- c( order( c(rbeta(1,0.3,5), runif(genes-1)))[1]/genes,
                replicate(n-1, sample(genes,1)/genes) )
   }
-  if (sample==TRUE){
+  if (shuffle==TRUE){
     return(sample(temp))
   }
   else{

@@ -78,14 +78,15 @@ FixMin <- function(pList, correlationMatrix, numReps = 100000){
 #' @param n the number of species in the test
 #' @param genes the number of genes in the genome use to calculate empirical p-values
 #' @importFrom "stats" "rbeta"
-GenerateNullData <- function(adaptation_screen, a, b, n, genes){
-  temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) )
+GenerateNullData <- function(adaptation_screen, n, a = 0.3, b = 5, genes = 20000){
+  temp <- c( order( c(rbeta(1,0.3,5), runif(genes-1)))[1]/genes,
+             replicate(n-1, sample(genes,1)/genes) )
   while (sum(temp<adaptation_screen)==0){
-    temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) )
+    temp <- c( order( c(rbeta(1,0.3,5), runif(genes-1)))[1]/genes,
+               replicate(n-1, sample(genes,1)/genes) )
   }
   return(temp)
 }
-
 
 
 #' @title Calculate empirical p-values from a vector of summary statistics

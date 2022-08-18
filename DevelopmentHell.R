@@ -1,6 +1,6 @@
 rm(list=ls())
 
-colorBlindBlack8  <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+colorBlindBlack8  <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
                        "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 library(rSymPy)
@@ -51,7 +51,7 @@ ordmeta = function(p, is.onetail = TRUE, eff.sign=NULL)
   {
     ord = order(p2, decreasing = F)
     pord = sort(p2, decreasing = F)
-    
+
     # get alpha = MIN(F_(i)(x)) {i={1..n}}
     N = length(p2)
     alpha = 1.01 # an arbitrary number larger than 1
@@ -100,7 +100,7 @@ ordmeta = function(p, is.onetail = TRUE, eff.sign=NULL)
     p1[idx_neg] = 1-p[idx_neg]/2
     p2[idx_pos] = 1-p[idx_pos]/2
     p2[idx_neg] = p[idx_neg]/2
-    
+
     RES1 = ordmeta(p2 = p1)
     RES2 = ordmeta(p2 = p2)
     if(RES1$p<=RES2$p){
@@ -136,7 +136,7 @@ order_stats_p_values_scaled <- function(p_list){
   n = length(p_sort)
   out_p = c()
   for (j in 1:length(p_sort)){
-    # Grab the relevant $p$-value from the list 
+    # Grab the relevant $p$-value from the list
     p_j=p_sort[j]
     # Calculate the $p$-values of each of the order statistics (excluding the first gene)
     out_p = append(out_p, pbeta(p_j,j,n+1-j) )
@@ -153,7 +153,7 @@ order_stats_p_values_unscaled <- function(p_list){
   n = length(p_sort)
   out_p = c()
   for (j in 1:length(p_sort)){
-    # Grab the relevant $p$-value from the list 
+    # Grab the relevant $p$-value from the list
     p_j=p_sort[j]
     # Calculate the $p$-values of each of the order statistics (excluding the first gene)
     out_p = append(out_p, pbeta(p_j,j,n+1-j) )
@@ -197,9 +197,9 @@ pbeta(0.1,1,6+1-1)
 
 
 generateNullData <- function(adaptation_screen, a, b, n){
-  temp <- c( rbeta(1,a,b),replicate(n-1, sample(10000,1)/10000) ) 
+  temp <- c( rbeta(1,a,b),replicate(n-1, sample(10000,1)/10000) )
   while (sum(temp<adaptation_screen)==0){
-    temp <- c( rbeta(1,a,b),replicate(n-1, sample(10000,1)/10000) ) 
+    temp <- c( rbeta(1,a,b),replicate(n-1, sample(10000,1)/10000) )
   }
   return(temp)
 }
@@ -207,27 +207,27 @@ generateNullData <- function(adaptation_screen, a, b, n){
 generateAltData <- function(adaptation_screen, max, k, n){
 
   if (n-k ==0){
-    temp <-  c(replicate(k, sample(max,1)/10000)) 
+    temp <-  c(replicate(k, sample(max,1)/10000))
   }
   else if(k==0){
     temp<- c(replicate(n, sample(10000,1)/10000) )
   }
   else{
-    temp <-  c(replicate(k, sample(max,1)/10000) 
-               ,c(replicate(n-k, sample(10000,1)/10000)) ) 
+    temp <-  c(replicate(k, sample(max,1)/10000)
+               ,c(replicate(n-k, sample(10000,1)/10000)) )
   }
 
   while (sum(temp<adaptation_screen)==0){
       if (n-k ==0){
-        temp <-  c(replicate(k, sample(max,1)/10000)) 
+        temp <-  c(replicate(k, sample(max,1)/10000))
       }
       else if(k==0){
         temp <- c(replicate(n, sample(10000,1)/10000) )
       }
       else{
-        temp <-  c(replicate(k, sample(max,1)/10000) 
-                   ,c(replicate(n-k, sample(10000,1)/10000)) ) 
-      } 
+        temp <-  c(replicate(k, sample(max,1)/10000)
+                   ,c(replicate(n-k, sample(10000,1)/10000)) )
+      }
   }
   return(temp)
 }
@@ -241,49 +241,49 @@ runPowerAnalysis <- function(reps,  alpha_1, n, power_vec, speciesVec){
 
   result_count= 0
   output_DFs = list()
-  
+
   for (GEA_power in c(0.05, 1:9/10) ){
     print(GEA_power)
     topHits = 500/GEA_power
     for (nSpecies in speciesVec){
       print(nSpecies)
       result_count = result_count +1
-      test_data <- t(replicate(reps, 
+      test_data <- t(replicate(reps,
                                generateAltData(alpha_1,
                                                topHits,
                                                nSpecies,
                                                n)))
-      
+
       test_data <- t(apply(test_data, 1, sort))
       test_data_order_stats_unscaled <- t(apply(test_data ,1, order_stats_p_values_unscaled))
       test_data_order_stats_unscaled
-      
+
       binom_results = rep(-1, reps)
       binom_adj_results = rep(-1, reps)
       tippett_results = rep(-1, reps)
 #      ordmeta_all_results = rep(-1, reps)
 #      ordmeta_2plus_results = rep(-1, reps)
-      
-      
+
+
       for (i in 1:reps){
               print(i)
         #      print(test_data[i,])
         unscaled_p_value_vector = test_data_order_stats_unscaled[i,]
-        
+
         temp_binom <-  binom.test( sum(test_data[i,]<alpha_1), n, alpha_1, , alternative='greater')$p.value
         temp_binom_adj <-  binom.test( sum(test_data[i,]<alpha_1)-1, n-1, alpha_1, , alternative='greater')$p.value
-        temp_tippett <- tippett(unscaled_p_value_vector, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1, size = 10000)$p 
+        temp_tippett <- tippett(unscaled_p_value_vector, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1, size = 10000)$p
 #        temp_ordmeta_all <- ordmeta(test_data[i,])$p
  #       temp_ordmeta_2plus <- ordmeta(sort(test_data[i,])[2:length(test_data[i,])])$p
-        
+
         print(c(temp_tippett) )
-        
+
         binom_results[i] = temp_binom
         binom_adj_results[i] = temp_binom_adj
         tippett_results[i] = temp_tippett
 #        ordmeta_all_results[i] = temp_ordmeta_all
 #        ordmeta_2plus_results[i] = temp_ordmeta_2plus
-        
+
       }
       output_DFs[[result_count]] = data.frame(GEA_Power=GEA_power,
                                               nSpeciesConvergent=nSpecies,
@@ -292,20 +292,20 @@ runPowerAnalysis <- function(reps,  alpha_1, n, power_vec, speciesVec){
                                               power_1_tippett=sum(tippett_results<power_vec[1])/reps,
                                            #   power_1_ordmeta_all=sum(ordmeta_all_results<power_vec[1])/reps,
                                            #   power_1_ordmeta_2plus=sum(ordmeta_2plus_results<power_vec[1])/reps,
-                                              
+
                                               power_2_binomial=sum(binom_results<power_vec[2])/reps,
                                               power_2_binomial_adj=sum(binom_adj_results<power_vec[2])/reps,
                                               power_2_tippett=sum(tippett_results<power_vec[2])/reps)
                                           #    power_2_ordmeta_all=sum(ordmeta_all_results<power_vec[2])/reps,
-                                          #    power_2_ordmeta_2plus=sum(ordmeta_2plus_results<power_vec[2])/reps)    
+                                          #    power_2_ordmeta_2plus=sum(ordmeta_2plus_results<power_vec[2])/reps)
     }
-    
+
   }
-  
-  
+
+
   output_temp <- do.call(rbind, output_DFs)
   return(output_temp)
-  
+
 }
 
 
@@ -315,7 +315,7 @@ runPowerAnalysis <- function(reps,  alpha_1, n, power_vec, speciesVec){
 Reps = 1000
 Alpha_1 = 0.05
 N = 7
-Power_vec=c(0.044, 0.003757)
+Power_vec=c(0.01, 0.003757)
 SpeciesVec = c(1:7)
 
 #output_df_n7 <- runPowerAnalysis( Reps,  Alpha_1, N, Power_vec, SpeciesVec )
@@ -332,15 +332,14 @@ output_df_n7_alpha_1_01 <- read.csv("~/UBC/GEA/pMax/Analysis/7_species_alpha_0.0
 Reps_n30 = 1000
 Alpha_1_n30 = 0.01
 N_n30 = 30
-Power_vec_n30=c(0.03615, 0.003318)
+Power_vec_n30=c(0.01, 0.003318)
 SpeciesVec_n30 = c(1,2,5,10,20,30)
 
 
 #output_df_n30 <- runPowerAnalysis( Reps_n30,  Alpha_1_n30, N_n30, Power_vec_n30, SpeciesVec_n30 )
 #write.csv(output_df_n30,"~/UBC/GEA/pMax/Analysis/30_species_alpha_0.01_adap.csv")
 output_df_n30 <- read.csv("~/UBC/GEA/pMax/Analysis/30_species_alpha_0.01_adap.csv")
-
-
+#output_df_n30$nSpeciesConvergent <- rep(c(1,2,5,10,20,30),10)
 #################
 ## N = 30 - for sam
 
@@ -392,7 +391,15 @@ output_df_n2 <- read.csv("~/UBC/GEA/pMax/Analysis/2_species_alpha_0.05_adap.csv"
 #
 # Start with n=7
 # With Binomial Test
-
+output_df_n7$nSpeciesConvergent <- factor(output_df_n7$nSpeciesConvergent,
+                                          levels = c(1,2,3,4,5,6,7),
+                                           labels = c("1/7",
+                                                      "2/7",
+                                                      "3/7",
+                                                      "4/7",
+                                                      "5/7",
+                                                      "6/7",
+                                                      "7/7"))
 power_1_plot_n7 <- ggplot(data = output_df_n7)+
   geom_hline(aes(yintercept = Power_vec[2]))+
   geom_line(aes(x = GEA_Power,
@@ -406,11 +413,11 @@ power_1_plot_n7 <- ggplot(data = output_df_n7)+
                  lty = "Binomial Test"),
              lwd = 1)+
 #  ggtitle("Adaptation Outliers Identified\nUsing 95th Percentile")+
-  scale_y_continuous(expression("Probability of Rejecting Null Hypothesis ("*alpha[Repeated]*"=0.00376)"),
+  scale_y_continuous(expression("Probability of Rejecting Null Hypothesis ("*alpha[Repeated]*"=0.01)"),
                      limits = c(0,1))+
   scale_x_continuous("Power of Genome Scan",
                      breaks = 1:9/10)+
-  scale_colour_manual("Number of Lineages\nThat Use The Gene", values = colorBlindBlack8)+
+  scale_colour_manual("Number of\nLineages\nWhere the\nGene is Causal", values = colorBlindBlack8)+
   scale_linetype_manual("Statistical Test", values = c(2,1))+
   theme_bw()+
   theme(
@@ -418,6 +425,14 @@ power_1_plot_n7 <- ggplot(data = output_df_n7)+
   )
 
 ### Now  n=30 with binomial
+output_df_n30$nSpeciesConvergent <- factor(output_df_n30$nSpeciesConvergent,
+                                           levels = c(1,2,5,10,20,30),
+                                           labels =  c("1/30",
+                                                      "2/30",
+                                                      "5/30",
+                                                      "10/30",
+                                                      "20/30",
+                                                      "30/30"))
 
 power_1_plot_n30_adap_01 <- ggplot(data = output_df_n30)+
   geom_hline(aes(yintercept = Power_vec_n30[2]))+
@@ -436,7 +451,7 @@ power_1_plot_n30_adap_01 <- ggplot(data = output_df_n30)+
                      limits = c(0,1))+
   scale_x_continuous("Power of Genome Scan",
                      breaks = 1:9/10)+
-  scale_colour_manual("Number of Lineages\nThat Use The Gene", values = colorBlindBlack8)+
+  scale_colour_manual("Number of\nLineages\nWhere the\nGene is Causal", values = colorBlindBlack8)+
   scale_linetype_manual("Statistical Test", values = c(2,1))+
   theme_bw()+
   theme(
@@ -450,56 +465,56 @@ S5 <- ggarrange(power_1_plot_n7,
           ncol = 1,
           nrow = 2,
           labels = "AUTO")
-png("~/UBC/GEA/pMax/Analysis/SuppFigure5.png",width = 500, height = 700)
+
+png("~/UBC/GEA/pMax/writeUp/Plots/SuppFigure5.png",width = 500, height = 700)
 print(S5)
 dev.off()
 
 
 # Same plot, but without the Binomial Test
 
-F1_power_1_plot_n7 <- ggplot(data = output_df_n7)+
-  geom_hline(aes(yintercept = Power_vec[2]))+
+F1_power_1_plot_n7 <- ggplot(data = output_df_n7_alpha_1_01)+
+  geom_hline(aes(yintercept = Power_vec[1]))+
   geom_line(aes(x = GEA_Power,
                 y = power_2_tippett,
                 col = as.factor(nSpeciesConvergent)),
             lwd=1)+
-  scale_y_continuous(expression("Power ("*alpha[Repeated]*"=0.00376)"),
+  scale_y_continuous(expression("Power ("*alpha[Repeated]*"=0.01)"),
                      limits = c(0,1))+
   scale_x_continuous("Power of Genome Scan",
                      breaks = 1:9/10)+
-  scale_colour_manual("Number of Lineages\nThat Use The Gene", values = colorBlindBlack8)+
+  scale_colour_manual("Number of\nLineages\nWhere the\nGene is Causal", values = colorBlindBlack8)+
   theme_bw()+
   theme(
     plot.title = element_text(hjust = 0.5)
   )
 
 ### Now  n=30 with binomial
-
 F1_power_1_plot_n30_adap_01 <- ggplot(data = output_df_n30)+
-  geom_hline(aes(yintercept = Power_vec_n30[2]))+
+  geom_hline(aes(yintercept = Power_vec_n30[1]))+
   geom_line(aes(x = GEA_Power,
                 y = power_2_tippett,
                 col = as.factor(nSpeciesConvergent)),
             lwd=1)+
-  scale_y_continuous(expression("Power ("*alpha[Repeated]*"=0.00332)"),
+  scale_y_continuous(expression("Power ("*alpha[Repeated]*"=0.01)"),
                      limits = c(0,1))+
   scale_x_continuous("Power of Genome Scan",
                      breaks = 1:9/10)+
-  scale_colour_manual("Number of Lineages\nThat Use The Gene", values = colorBlindBlack8)+
+  scale_colour_manual("Number of\nLineages\nWhere the\nGene is Causal", values = colorBlindBlack8)+
   theme_bw()+
   theme(
     plot.title = element_text(hjust = 0.5)
   )
 
-# Figure 1
-Figure1 <- ggarrange(F1_power_1_plot_n7,
+# Figure 2
+Figure2 <- ggarrange(F1_power_1_plot_n7,
                      F1_power_1_plot_n30_adap_01,
                 ncol = 1,
                 nrow = 2,
                 labels = "AUTO")
 
-pdf("~/UBC/GEA/pMax/Analysis/Figure1.pdf",width = 5, height = 7)
-print(Figure1)
+pdf("~/UBC/GEA/pMax/writeUp/Plots/Figure2.pdf",width = 5, height = 7)
+print(Figure2)
 dev.off()
 
 
@@ -512,7 +527,7 @@ dev.off()
 ###
 
 n = 7
-alpha_1 = 0.05 
+alpha_1 = 0.05
 
 emp_p_null_dat <- t(replicate(10000, generateNullData(alpha_1, 1, 1, n)))
 emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, order_stats_p_values_unscaled))
@@ -522,25 +537,25 @@ reps = 200
 result_count= 1
 output_DFs = list()
 threshold=  0.05
-  
+
 for (GEA_power in c(0.2, 0.4, 0.6, 0.8) ){
     topHits = 500/GEA_power
         for (nSpecies in c(3,5,7)){
 #    for (nSpecies in c(3)){
     for (i in 1:reps){
         pass_test = FALSE
-        
+
         while (pass_test == FALSE){
-  
+
                   test_data <- generateAltData(alpha_1,
                         topHits,
                         nSpecies,
-                        n) 
+                        n)
                   test_data_order_stats_unscaled <- order_stats_p_values_unscaled(test_data)
                   temp_binom <-  binom.test( sum(test_data<alpha_1), n, alpha_1, , alternative='greater')$p.value
 #                  temp_binom_adj <-  binom.test( sum(test_data[i,]<alpha_1)-1, n-1, alpha_1, , alternative='greater')$p.value
-                  temp_tippett <- tippett(test_data_order_stats_unscaled, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1)$p 
-        
+                  temp_tippett <- tippett(test_data_order_stats_unscaled, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1)$p
+
                   if ((temp_binom<threshold)&(temp_tippett<threshold)){
 
                     binom_count = sum(test_data<alpha_1)
@@ -554,8 +569,8 @@ for (GEA_power in c(0.2, 0.4, 0.6, 0.8) ){
                                                             PicMin_estimate=PicMin_estimate)
                     result_count = result_count +1
                     pass_test = TRUE
-                    
-                    
+
+
                   }
                 }
 
@@ -572,9 +587,9 @@ data <- melt(output_temp, id = c("GEA_Power", "nSpeciesConvergent", "X"))
 data$variable  <- factor( data$variable,
                           levels = c("binomial_estimate",
                                      "PicMin_estimate"),
-                          labels = c(expression("Simple Threshold ("*italic(ep)*"-value <0.05)"),
+                          labels = c(expression("Simple Threshold ("*italic(ep)*"-value < 0.05)"),
                                      expression(italic("PicMin")*" Estimate"))
-                          ) 
+                          )
 
 
 data$GEA_Power <- paste("Genome Scan Power = ", data$GEA_Power, sep = "")
@@ -582,7 +597,7 @@ data$GEA_Power <- paste("Genome Scan Power = ", data$GEA_Power, sep = "")
 
 
 
-safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
                              "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
 
 colourPal <- safe_colorblind_palette[c(3,7,11)]
@@ -594,17 +609,17 @@ tbl <- with(data, table(nSpeciesConvergent, variable, GEA_Power, value))
 plot_data <- as.data.frame(tbl)
 
 plot_data$indicator <- as.numeric(as.character(plot_data$value)) == as.numeric(as.character(plot_data$nSpeciesConvergent))
-plot_data$nSpeciesConvergent_lab <- paste(plot_data$nSpeciesConvergent,  " Lineages Using Gene", sep = "")
+plot_data$nSpeciesConvergent_lab <- paste(plot_data$nSpeciesConvergent,  " Lineages With Causal Gene", sep = "")
 
 parse.labels <- function(x) parse(text = x)
 
 
-config_plot <- ggplot(plot_data, aes(value, Freq, fill = variable, col = indicator)) +     
+config_plot <- ggplot(plot_data, aes(value, Freq, fill = variable, col = indicator)) +
   geom_col(position = 'dodge')+
   scale_color_manual(values = c("white","black"))+
 
-  scale_x_discrete("Estimate of the Number of Lineages Using the Gene",
-                     breaks = c(1,2,3,4,5,6,7)) +  
+  scale_x_discrete("Estimate of the Number of Lineages Where the Gene is Causal",
+                     breaks = c(1,2,3,4,5,6,7)) +
   scale_y_continuous(limits = c(0,200))+
   #coord_cartesian(clip = "off") +
   scale_fill_manual("", values = colourPal, labels = parse.labels)+
@@ -619,14 +634,14 @@ config_plot <- ggplot(plot_data, aes(value, Freq, fill = variable, col = indicat
     legend.position = "bottom"
   )
 
-ggsave("~/UBC/GEA/pMax/Analysis/convergenceConfigurations_n7_a0.05_t0.05.pdf",config_plot,
+ggsave("~/UBC/GEA/pMax/writeUp/Plots/Figure3.pdf",config_plot,
        width = 8,
-       height = 6)
+       height = 7)
 
-ggsave("~/UBC/GEA/pMax/Analysis/convergenceConfigurations_n7_a0.05_t0.05.png", config_plot,
+ggsave("~/UBC/GEA/pMax/writeUp/Plots/Figure3.png", config_plot,
        device = png,
        units = "in",
-       width = 8, height = 6,
+       width = 8, height = 7,
        res = 1000)
 
 
@@ -652,20 +667,20 @@ for (GEA_power in c(0.2, 0.4, 0.6, 0.8) ){
     #    for (nSpecies in c(3)){
     for (i in 1:reps){
       pass_test = FALSE
-      
+
       while (pass_test == FALSE){
-        
+
         test_data <- generateAltData(alpha_1,
                                      topHits,
                                      nSpecies,
-                                     n) 
+                                     n)
         test_data_order_stats_unscaled <- order_stats_p_values_unscaled(test_data)
         temp_binom <-  binom.test( sum(test_data<alpha_1), n, alpha_1, , alternative='greater')$p.value
         #                  temp_binom_adj <-  binom.test( sum(test_data[i,]<alpha_1)-1, n-1, alpha_1, , alternative='greater')$p.value
-        temp_tippett <- tippett(test_data_order_stats_unscaled, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1)$p 
-        
+        temp_tippett <- tippett(test_data_order_stats_unscaled, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1)$p
+
         if ((temp_binom<threshold)&(temp_tippett<threshold)){
-          
+
           binom_count = sum(test_data<alpha_1)
           PicMin_estimate = which.min( test_data_order_stats_unscaled )+1
           print(test_data)
@@ -677,11 +692,11 @@ for (GEA_power in c(0.2, 0.4, 0.6, 0.8) ){
                                                   PicMin_estimate=PicMin_estimate)
           result_count = result_count +1
           pass_test = TRUE
-          
-          
+
+
         }
       }
-      
+
     }
   }
 }
@@ -696,14 +711,14 @@ data$variable  <- factor( data$variable,
                                      "PicMin_estimate"),
                           labels = c(expression(atop("Simple Threshold", paste("("*italic(ep)*"-value <0.05)"))),
                                      expression(atop(italic("PicMin"), paste("Estimate")))
-                                     ) 
+                                     )
                           )
 
 data$GEA_Power <- paste("Genome Scan Power = ", data$GEA_Power, sep = "")
 
 expression(atop("Simple Threshold", paste("("*italic(ep)*"-value <0.05)")))
 
-safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
                              "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
 
 colourPal <- safe_colorblind_palette[c(3,7,11)]
@@ -725,11 +740,11 @@ plot_data$nSpeciesConvergent_lab <- factor(plot_data$nSpeciesConvergent_lab,
                                     "9 Species Using Gene",
                                     "11 Species Using Gene"))
 
-config_plot <- ggplot(plot_data, aes(value, Freq, fill = variable)) +     
+config_plot <- ggplot(plot_data, aes(value, Freq, fill = variable)) +
   geom_col(position = 'dodge')+
   geom_col(data= plot_data[plot_data$indicator == TRUE,], aes(fill = variable),position = 'dodge',col ="black")+
   scale_x_discrete("Estimate of the Number of Lineages Using the Gene",
-                   breaks = c(5,10,15,20,25,30)) +  
+                   breaks = c(5,10,15,20,25,30)) +
   scale_y_continuous(limits = c(0,200))+
   #coord_cartesian(clip = "off") +
   scale_fill_manual("", values = colourPal)+
@@ -749,7 +764,7 @@ ggsave("~/UBC/GEA/pMax/Analysis/convergenceConfigurations_n30_a0.05_t0.045_s.pdf
        height = 10)
 
 
-###### 
+######
 #
 # Full genome comparison
 #
@@ -763,7 +778,7 @@ nHits <- 100
 speciesEmpiricalP <- function(nGenes, nHits, a, b){
                               species_p_values <- c( rbeta( nHits, a,b),
                                                    runif(nGenes-nHits) )
-                            
+
                               species_empirical_p_values <- rank(species_p_values)/nGenes
                               return(species_empirical_p_values)
 }
@@ -802,7 +817,7 @@ for (k in c(3,5,7)){
     for (rep in 1:10){
         print(c(k,g$power,rep))
         result_count = result_count+1
-        if (k < 7){ 
+        if (k < 7){
           dataSet <- cbind( c(replicate(k, speciesEmpiricalP(nGenes, nHits, g$a, g$b)) ),
                         c(replicate(7-k, speciesEmpiricalP(nGenes, 0, 1, 1) ) ))
         }
@@ -812,23 +827,23 @@ for (k in c(3,5,7)){
                 adap_screen_vector <- apply(dataSet<0.05, 1, sum)!=0
         gene_names <- c(1:nGenes)[adap_screen_vector]
         screenedDataSet <- dataSet[adap_screen_vector, ]
-        
+
         registerDoParallel(numCores)
-        
+
         output_p_values<- foreach (i=1:nrow(screenedDataSet), .combine=c) %dopar% {
 #        output_p_values<- foreach (i=1:100, .combine=c) %dopar% {
           PicMin(screenedDataSet[i,], null_pMax_cor_unscaled)$p
         }
-        
-        q_values <- p.adjust( output_p_values, method = "fdr" ) 
+
+        q_values <- p.adjust( output_p_values, method = "fdr" )
 
         temp_df <- as.data.frame(screenedDataSet)
         temp_df$gene_id =  gene_names
         temp_df$q <- q_values
-        
+
         true_positives <- sum((temp_df$q<0.05)&(temp_df$gene_id<=nHits))
         false_positives <- sum((temp_df$q<0.05)&(temp_df$gene_id>nHits))
-        
+
         output_DF_list[[result_count]] = data.frame(GEA_Power=g$power,
                                                     rep = rep,
                                                 nSpeciesConvergent=k,
@@ -847,7 +862,7 @@ temp <- read.csv("~/UBC/GEA/pMax/Analysis/genome_analysis_3-7.csv")
 temp$GEA_Power <- as.character(temp$GEA_Power)
 temp$nSpeciesConvergent <- as.character(temp$nSpeciesConvergent)
 
-temp_melt <- melt(temp, 
+temp_melt <- melt(temp,
                   id = c("GEA_Power", "rep", "nSpeciesConvergent", "X"))
 
 
@@ -861,22 +876,22 @@ genome_fdr_plot <- ggplot(data = temp_melt, aes(x = as.factor(GEA_Power), y = va
                      limits = c(0,100))+
   scale_x_discrete("Genome Scan Power")+
   facet_wrap(~variable)+
-  scale_fill_manual("Number of\nLineages\nthat use\nthe Gene"
+  scale_fill_manual("Number of\nLineages\nWhere the\nGene is Causal"
     ,values = colorBlindBlack8[c(3,5,7)])+
-  scale_color_manual("Number of\nLineages\nthat use\nthe Gene"
+  scale_color_manual("Number of\nLineages\nWhere the\nGene is Causal"
                     ,values = colorBlindBlack8[c(3,5,7)])+
   theme_bw()+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(size = 12)
 )
-        
 
-ggsave("~/UBC/GEA/pMax/Analysis/genome_analysis_3-7_q0.05.pdf",
+
+ggsave("~/UBC/GEA/pMax/writeUp/Plots/Plot4.pdf",
        genome_fdr_plot,
        width = 8,
        height = 4)
-ggsave("~/UBC/GEA/pMax/Analysis/genome_analysis_3-7_q0.05.png",
+ggsave("~/UBC/GEA/pMax/writeUp/Plots/Plot4.png",
        genome_fdr_plot,
        units = "in",
        device = "png",
@@ -894,59 +909,59 @@ ggsave("~/UBC/GEA/pMax/Analysis/genome_analysis_3-7_q0.05.png",
 runPowerAnalysis_alpha1 <- function(reps,  GEA_power_vec, n, power_vec, speciesVec){
   output_DFs = list()
   result_count= 0
-  
+
   for (alpha_1 in c(10,50,100,500,1000)/10000 ){
 
     emp_p_null_dat <- t(replicate(10000, generateNullData(alpha_1, 1, 1, n)))
     emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, order_stats_p_values_unscaled))
     null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
-    
+
     for (GEA_power in GEA_power_vec){
-        
+
       print(GEA_power)
       topHits = 500/GEA_power
       for (nSpecies in speciesVec){
         print(nSpecies)
         result_count = result_count +1
-        test_data <- t(replicate(reps, 
+        test_data <- t(replicate(reps,
                                  generateAltData(alpha_1,
                                                  topHits,
                                                  nSpecies,
                                                  n)))
-        
+
         test_data <- t(apply(test_data, 1, sort))
         test_data_order_stats_unscaled <- t(apply(test_data ,1, order_stats_p_values_unscaled))
         test_data_order_stats_unscaled
-        
+
   #      binom_results = rep(-1, reps)
   #      binom_adj_results = rep(-1, reps)
         tippett_results = rep(-1, reps)
         #      ordmeta_all_results = rep(-1, reps)
         #      ordmeta_2plus_results = rep(-1, reps)
-        
-        
+
+
         for (i in 1:reps){
           print(i)
           #      print(test_data[i,])
           unscaled_p_value_vector = test_data_order_stats_unscaled[i,]
-          
+
   #        temp_binom <-  binom.test( sum(test_data[i,]<alpha_1), n, alpha_1, , alternative='greater')$p.value
   #        temp_binom_adj <-  binom.test( sum(test_data[i,]<alpha_1)-1, n-1, alpha_1, , alternative='greater')$p.value
-          temp_tippett <- tippett(unscaled_p_value_vector, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1, size = 10000)$p 
+          temp_tippett <- tippett(unscaled_p_value_vector, adjust = "empirical", R = null_pMax_cor_unscaled, side = 1, size = 10000)$p
           #        temp_ordmeta_all <- ordmeta(test_data[i,])$p
           #       temp_ordmeta_2plus <- ordmeta(sort(test_data[i,])[2:length(test_data[i,])])$p
-          
+
           print(c(temp_tippett) )
-          
+
   #        binom_results[i] = temp_binom
   #        binom_adj_results[i] = temp_binom_adj
           tippett_results[i] = temp_tippett
           #        ordmeta_all_results[i] = temp_ordmeta_all
           #        ordmeta_2plus_results[i] = temp_ordmeta_2plus
-          
+
         }
         output_DFs[[result_count]] = data.frame(alpha_a=alpha_1,
-                                                
+
                                                 nSpeciesConvergent=nSpecies,
                                                 GEA_Power=GEA_power,
                                       #          power_1_binomial=sum(binom_results<power_vec[1])/reps,
@@ -954,17 +969,17 @@ runPowerAnalysis_alpha1 <- function(reps,  GEA_power_vec, n, power_vec, speciesV
                                                 power_1_tippett=sum(tippett_results<power_vec[1])/reps,
                                                 #   power_1_ordmeta_all=sum(ordmeta_all_results<power_vec[1])/reps,
                                                 #   power_1_ordmeta_2plus=sum(ordmeta_2plus_results<power_vec[1])/reps,
-                                                
+
                                       #          power_2_binomial=sum(binom_results<power_vec[2])/reps,
                                       #          power_2_binomial_adj=sum(binom_adj_results<power_vec[2])/reps,
                                                 power_2_tippett=sum(tippett_results<power_vec[2])/reps)
         #    power_2_ordmeta_all=sum(ordmeta_all_results<power_vec[2])/reps,
-        #    power_2_ordmeta_2plus=sum(ordmeta_2plus_results<power_vec[2])/reps)    
+        #    power_2_ordmeta_2plus=sum(ordmeta_2plus_results<power_vec[2])/reps)
         print( output_DFs[[result_count]])
       }
-      
-    
-    
+
+
+
     }
   }
   output_temp <- do.call(rbind, output_DFs)
@@ -992,11 +1007,11 @@ single_hit_melt <- melt(single_hit, id = c("alpha_a","nSpeciesConvergent","GEA_P
 
 
 ## Calculate Clopper-Pearson intervals
-single_hit_melt$lower_p <-qbeta(0.05/2, 
+single_hit_melt$lower_p <-qbeta(0.05/2,
                                 single_hit_melt$value*Reps,
                                 Reps - single_hit_melt$value*Reps +1)
 
-single_hit_melt$upper_p <-qbeta(1-0.05/2, 
+single_hit_melt$upper_p <-qbeta(1-0.05/2,
                                 single_hit_melt$value*Reps+1,
                                 Reps - single_hit_melt$value*Reps)
 
@@ -1035,11 +1050,11 @@ single_hit_n30_melt <- melt(single_hit_n30, id = c("alpha_a","nSpeciesConvergent
 
 
 ## Calculate Clopper-Pearson intervals
-single_hit_n30_melt$lower_p <-qbeta(0.05/2, 
+single_hit_n30_melt$lower_p <-qbeta(0.05/2,
                                 single_hit_n30_melt$value*Reps,
                                 Reps - single_hit_n30_melt$value*Reps +1)
 
-single_hit_n30_melt$upper_p <-qbeta(1-0.05/2, 
+single_hit_n30_melt$upper_p <-qbeta(1-0.05/2,
                                 single_hit_n30_melt$value*Reps+1,
                                 Reps - single_hit_n30_melt$value*Reps)
 
@@ -1069,13 +1084,13 @@ alpha_adapt_FP_plot <- ggplot(data = plot_single_hit_data)+
                 position=position_dodge(width=0.25),
                 width = 0.01)+
   scale_x_discrete("Genome Scan Power")+
-  scale_y_continuous("Proportion of False Positives", 
+  scale_y_continuous("Proportion of False Positives",
                      limits =c(0,0.15))+
   geom_hline(data = lineref_df, aes(yintercept = value), lty = 2)+
-  facet_grid(n~variable, 
+  facet_grid(n~variable,
              scale = "free_y",
              label=label_parsed)+
-  scale_color_brewer(expression(alpha[Adapt]), 
+  scale_color_brewer(expression(alpha[Adapt]),
                      palette="Dark2")+
   theme_bw()+
   theme(
@@ -1095,7 +1110,7 @@ ggsave("~/UBC/GEA/pMax/Analysis/falsePositives_alphaAdapt.png", device = png,
 
 multi_n_data <- output_df_n7_alpha_screen[output_df_n7_alpha_screen$nSpeciesConvergent>1,]
 
-multi_n_data_melt <- melt(multi_n_data, 
+multi_n_data_melt <- melt(multi_n_data,
                           id = c("X","alpha_a","nSpeciesConvergent","GEA_Power"))
 label_vec <- c(expression(2*" Species Convergent"),
   expression(3*" Species Convergent"),
@@ -1112,7 +1127,7 @@ multi_n_data_melt$variable <- factor(multi_n_data_melt$variable,
 multi_n_data_melt$n <-  factor(multi_n_data_melt$nSpeciesConvergent,
                                levels = 2:7,
                                labels = label_vec)
-  #paste(multi_n_data_melt$nSpeciesConvergent, "Species Convergent") 
+  #paste(multi_n_data_melt$nSpeciesConvergent, "Species Convergent")
 
 alpha_adapt_TP_plot <- ggplot(data = multi_n_data_melt)+
   geom_line(aes( x= as.factor(GEA_Power),
@@ -1120,11 +1135,11 @@ alpha_adapt_TP_plot <- ggplot(data = multi_n_data_melt)+
                   col = as.factor(alpha_a),
                  group = as.factor(alpha_a)),
              lwd= 1)+
-  facet_grid(n~variable, 
+  facet_grid(n~variable,
              labeller = label_parsed)+
   scale_x_discrete("Genome Scan Power")+
   scale_y_continuous("Probability of Rejecting Null Hypothesis")+
-  scale_color_brewer(expression(alpha[Adapt]), 
+  scale_color_brewer(expression(alpha[Adapt]),
                      palette="Dark2")+
   theme_bw()+
   theme(
@@ -1155,49 +1170,52 @@ ggsave("~/UBC/GEA/pMax/Analysis/truePositives_alphaAdapt.png", alpha_adapt_TP_pl
 #' @param genes the number of genes in the genome use to calculate empirical p-values
 #' @importFrom "stats" "rbeta"
 GenerateNullData <- function(adaptation_screen, a, b, n, genes){
-  temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) ) 
+  temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) )
   while (sum(temp<adaptation_screen)==0){
-    temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) ) 
+    temp <- c( rbeta(1,a,b),replicate(n-1, sample(genes,1)/genes) )
   }
   return(temp)
 }
 
-replicates = 10000
+replicates = 100
 n=7
 results_DFs <- list()
 count = 0
 
 for (alpha_adapt in c(0.005, 0.01, 0.05, 1.0)){
-    for (maxP in c(600, 1000, 2000)){
-    count = count + 1
-    null_data_for_mat <- t(replicate(40000, GenerateNullData(alpha_adapt, 0.5, 3, n, 10000)))
-    
-  emp_p_null_dat_unscaled <- t(apply(null_data_for_mat, 
-                                     1, 
+  null_data_for_mat <- t(replicate(40000, GenerateNullData(alpha_adapt, 0.5, 3, n, 10000)))
+  
+  emp_p_null_dat_unscaled <- t(apply(null_data_for_mat,
+                                     1,
                                      order_stats_p_values_unscaled))
   
   # Use those p-values to construct the correlation matrix
   null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
-  
+  for (maxP in c(600, 1000, 2000)){
+    count = count + 1
+    print(c(alpha_adapt, maxP))
+
+
   null_data <- t( replicate( replicates,
-                             generateAltData(alpha_adapt, 
+                             generateAltData(alpha_adapt,
                                                   maxP,
                                                  1,
                                                  n) ) )
   null_data_order_stats <- t(apply(null_data_for_mat,
-                                   1, 
+                                   1,
                                    order_stats_p_values_unscaled))
-  
+
   result_vector = rep(0,
                       replicates)
+  print("!")
+  for (s in seq_len(replicates)){
+    print(s)
+    temp_tippett <- tippett(null_data_order_stats[s,],
+                            adjust = "empirical",
+                            R = null_pMax_cor_unscaled,
+                            side = 1,
+                            size = 10000)$p
 
-  for (s in seq_len(replicates)){ 
-    temp_tippett <- tippett(null_data_order_stats[s,], 
-                            adjust = "empirical", 
-                            R = null_pMax_cor_unscaled, 
-                            side = 1, 
-                            size = 10000)$p 
-    
     result_vector[s] = temp_tippett
   }
   results_DFs[[count]] = data.frame(p_vals = result_vector,
@@ -1221,15 +1239,15 @@ histo_data$scan_power <- factor(histo_data$maxP,
                                 labels = c(expression("Genome scan power"*" = 0.8333..."),
                                            expression("Genome scan power"*" = 0.5"),
                                            expression("Genome scan power"*" = 0.25")))
-  
+
 null_hypothesis_histogram <- ggplot(data = histo_data,
        aes(x = p_vals))+
   geom_histogram( binwidth = 0.05, boundary  = 1, fill = "grey", col = "black" )+
-  facet_grid(scan_power~alpha_adapt, 
+  facet_grid(scan_power~alpha_adapt,
              label = label_parsed)+
   scale_x_continuous(expression(italic("p")*"-value"))+
-  scale_y_continuous("Count",
-                     limits = c(0,700))+
+#  scale_y_continuous("Count",
+#                     limits = c(0,700))+
   theme_bw()+
     theme(
       strip.text.x = element_text(size = 13),
@@ -1239,7 +1257,7 @@ null_hypothesis_histogram <- ggplot(data = histo_data,
 ggsave("~/UBC/GEA/pMax/Analysis/null_distribution_histogram_n7.pdf",
        width = 9.50,
        height = 6.50,
-        units = "in")    
+        units = "in")
 
 
 
@@ -1252,33 +1270,33 @@ for (alpha_adapt in c(0.005, 0.01, 0.05, 1.0)){
   for (maxP in c(600, 1000, 2000)){
     count = count + 1
     null_data_for_mat <- t(replicate(40000, GenerateNullData(alpha_adapt, 0.5, 3, n, 10000)))
-    
-    emp_p_null_dat_unscaled <- t(apply(null_data_for_mat, 
-                                       1, 
+
+    emp_p_null_dat_unscaled <- t(apply(null_data_for_mat,
+                                       1,
                                        order_stats_p_values_unscaled))
-    
+
     # Use those p-values to construct the correlation matrix
     null_pMax_cor_unscaled <- cor( emp_p_null_dat_unscaled )
-    
+
     null_data <- t( replicate( replicates,
-                               generateAltData(alpha_adapt, 
+                               generateAltData(alpha_adapt,
                                                maxP,
                                                1,
                                                n) ) )
     null_data_order_stats <- t(apply(null_data_for_mat,
-                                     1, 
+                                     1,
                                      order_stats_p_values_unscaled))
-    
+
     result_vector = rep(0,
                         replicates)
-    
-    for (s in seq_len(replicates)){ 
-      temp_tippett <- tippett(null_data_order_stats[s,], 
-                              adjust = "empirical", 
-                              R = null_pMax_cor_unscaled, 
-                              side = 1, 
-                              size = 10000)$p 
-      
+
+    for (s in seq_len(replicates)){
+      temp_tippett <- tippett(null_data_order_stats[s,],
+                              adjust = "empirical",
+                              R = null_pMax_cor_unscaled,
+                              side = 1,
+                              size = 10000)$p
+
       result_vector[s] = temp_tippett
     }
     results_DFs[[count]] = data.frame(p_vals = result_vector,
@@ -1302,3 +1320,24 @@ histo_data$scan_power <- factor(histo_data$maxP,
                                 labels = c(expression("Genome scan power"*" = 0.8333..."),
                                            expression("Genome scan power"*" = 0.5"),
                                            expression("Genome scan power"*" = 0.25")))
+
+
+
+null_hypothesis_histogram <- ggplot(data = histo_data,
+                                    aes(x = p_vals))+
+  geom_histogram( binwidth = 0.05, boundary  = 1, fill = "grey", col = "black" )+
+  facet_grid(scan_power~alpha_adapt,
+             label = label_parsed)+
+  scale_x_continuous(expression(italic("p")*"-value"))+
+  scale_y_continuous("Count",
+                     limits = c(0,700))+
+  theme_bw()+
+  theme(
+    strip.text.x = element_text(size = 13),
+    strip.background = element_blank()
+  )
+
+ggsave("~/UBC/GEA/pMax/Analysis/null_distribution_histogram_n30.pdf",
+       width = 9.50,
+       height = 6.50,
+       units = "in")

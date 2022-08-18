@@ -16,6 +16,25 @@ orderStatsPValues <- function(p_list){
 }
 
 
+#' @title orderStatsPValues_fix
+#' @param p_list the vector of p-values from your genome scans
+#' @importFrom "stats" "pbeta"
+orderStatsPValues_fix <- function(p_list){
+  ## This function returns a list of the p-values for each of marginal p-values
+  # sort the list of $p$-values
+  p_sort <- sort(p_list)[2:length(p_list)]
+  # calculate the number of species minus 1
+  n = length(p_sort)
+  # get a vector of the 'a' parameters for each of the marginal distributions
+  the_as = 2:(length(p_sort) + 1)
+  # get a vector of the 'b' parameters for each of the marginal distributions
+  the_bs = n+2-the_as
+  # calculate the p-values for each of the marginals and return
+  return(pbeta(p_sort, the_as, the_bs))
+}
+
+
+
 #' @title PicMin
 #' @param pList the vector of p-values from your genome scans
 #' @param correlationMatrix the correlation matrix under the null hypothesis

@@ -400,7 +400,7 @@ ggplot(data = picMin_results,
 
 It does not look as if there are any strikingly large signals of repeated adaptation many loci other than the FAR5 locus we already discussed. Remember though, that we are only looking at a single scaffold for the sake of this vignette, other scaffolds may have had interesting results. 
 
-# Analysing pairs of lineages using PicMin
+# Analysing pairs of lineages using PicMin - This is experimental and not the main PicMin method
 
 If you read the paper describing PicMin, you may have noticed how little power the method has to identify repeated adaptation between pairs of populations. Remember, that the primary aim of PicMin is to identify genes or genomic regions with evidence for repeated adaptation. In this context, PicMin has little power for pairs of lineages. However, if we want to evaluate the overall evidence for convergent evolution genome-wide, we might take a different approach PicMin can do that too!
 

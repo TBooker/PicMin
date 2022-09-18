@@ -1,25 +1,7 @@
-#' @title orderStatsPValues
-#' @param p_list the vector of p-values from your genome scans
-#' @importFrom "stats" "pbeta"
-orderStatsPValues <- function(p_list){
-  ## This function returns a list of the p-values for each of marginal p-values
-  # sort the list of $p$-values
-  p_sort <- sort(p_list)[2:length(p_list)]
-  # calculate the number of species minus 1
-  n = length(p_sort)
-  # get a vector of the 'a' parameters for each of the marginal distributions
-  the_as = 1:length(p_sort)
-  # get a vector of the 'b' parameters for each of the marginal distributions
-  the_bs = n+1-the_as
-  # calculate the p-values for each of the marginals and return
-  return(pbeta(p_sort, the_as, the_bs))
-}
-
-
 #' @title orderStatsPValues_fix
 #' @param p_list the vector of p-values from your genome scans
 #' @importFrom "stats" "pbeta"
-orderStatsPValues_fix <- function(p_list){
+orderStatsPValues <- function(p_list){
   ## This function returns a list of the p-values for each of marginal p-values
   # sort the list of $p$-values
   p_sort <- sort(p_list)[2:length(p_list)]
@@ -35,6 +17,8 @@ orderStatsPValues_fix <- function(p_list){
 
 
 
+
+
 #' @title PicMin
 #' @param pList the vector of p-values from your genome scans
 #' @param correlationMatrix the correlation matrix under the null hypothesis
@@ -42,30 +26,14 @@ orderStatsPValues_fix <- function(p_list){
 #' @importFrom "poolr" "tippett"
 PicMin <- function(pList, correlationMatrix, numReps = 100000){
   # Calculate the p-value for the order statistics
-  ord_stats_p_values <- orderStatsPValues(pList)
-  # Apply the Tippett/Dunn-Sidak Correction
-  p_value <- tippett(ord_stats_p_values, adjust = "empirical",
-                     R = correlationMatrix,
-                     side = 1,
-                     size = numReps)$p
-  return(list(p=p_value,
-              config_est=which.min(ord_stats_p_values)+1))
-}
-
-
-#' @title FixMin
-#' @param pList the vector of p-values from your genome scans
-#' @param correlationMatrix the correlation matrix under the null hypothesis
-#' @param numReps the number of replicate draws to perform when building the empirical distributing for calculating the Tippett p-value
-#' @importFrom "poolr" "tippett"
-FixMin <- function(pList, correlationMatrix, numReps = 100000){
-  # Calculate the p-value for the order statistics
   ord_stats_p_values <- orderStatsPValues_fix(pList)
   # Apply the Tippett/Dunn-Sidak Correction
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,
                      side = 1,
-                     size = numReps)$p
+                     size = c(100,1000,10000,100000,1000000),
+                     threshold = c(0.1,0.01,0.001,0.0001, 0.00001)
+                     )$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }
@@ -90,7 +58,7 @@ GenerateNullData <- function(adaptation_screen, n, a = 0.3, b = 5, genes = 20000
   }
   else{
     return(temp)
-  
+
   }
 }
 
@@ -105,4 +73,25 @@ EmpiricalPs <- function( vector_of_values, large_i_small_p = FALSE ){
   else{
     rank(vector_of_values,na.last = "keep")/sum(is.na (vector_of_values) == F)
   }
+}
+
+
+#' @title Extract locus names from a dataframe of the kind used in the vignette  (written for the vignette, so may not be widely applicable)
+#' @param lineage_df A dataframe containing the data you want to extract names from. Must have the columns "scaff" and "start".
+get_names <- function( lineage_df ){
+  return( paste( lineage_df$scaff, lineage_df$start,
+                 sep = "_") )
+}
+
+
+
+#' @title Reduce a dataframe to contain only the empirical p-values for a particular lineage (written for the vignette, so may not be widely applicable)
+#' @param lineage_df A dataframe containing the data you want to extract names from.
+#' @param lineage_name A unique identifier to use as a column heading
+min_lin <- function( lineage_df , lineage_name){
+  tmp <- data.frame( emp_p = lineage_df$emp_p,
+                     window = lineage_df$name)
+  names(tmp) <- c(lineage_name,
+                  "window")
+  return( tmp )
 }

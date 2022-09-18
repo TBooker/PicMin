@@ -3,7 +3,7 @@ rm(list = ls())
 library(ggplot2)
 library(ggpubr)
 
-wza <- read.csv("~/UBC/GEA/pMax/WZA_analysis/all_results_r10000.7sets.FixMin099.csv")
+wza <- read.csv("~/UBC/GEA/PicMin/WZA_analysis/all_results_r10000.7sets.FixMin099.csv")
 
 wza[wza$p<0.01,]
 
@@ -63,10 +63,9 @@ panel_power <- ggplot(data = power_results,
   geom_errorbar(aes(ymax = power_up,
                     ymin = power_down),
                 width = 0.3)+
-  ggtitle("FixMin")+
     scale_y_continuous(limits = c(0,1))+
   ylab("Probability of Rejecting Null Hypothesis (q<0.05)")+
-  xlab("Number of Lineages Where the Gene is Causal")+
+  xlab("Number of Lineages Where the Gene is Adaptively Causal")+
   theme_bw()+
   scale_color_brewer(expression(alpha[Adapt]),
                      palette="Dark2")+
@@ -88,10 +87,9 @@ panel_FDR <- ggplot(data = fdr_results_df,
   geom_errorbar(aes(ymax = power_up,
                     ymin = power_down),
                 width = 0.3)+
-  ggtitle("FixMin")+
   geom_hline( aes (yintercept = 0.05), lty = 2)+
   scale_y_continuous( limits = c(0,1))+
-  ylab("False Dicovery Rate")+
+  ylab("False Discovery Rate")+
   xlab("")+
   theme_bw()+
   scale_color_brewer(expression(alpha[Adapt]),
@@ -112,8 +110,19 @@ combined_figure <- ggarrange(panel_power,
           align ="h",
           labels = "AUTO")
 
-pdf("~/UBC/GEA/pMax/writeUp/Plots/WZA_results_plot.FixMin.pdf",
+pdf("~/UBC/GEA/PicMin/WZA_analysis/WZA_results_plot.pdf",
     width = 8.74,
     height = 5.16)
 print(combined_figure)
 dev.off()
+
+
+
+
+Reps_n30 = 1000
+Alpha_1_n30 = 0.01
+N_n30 = 30
+Power_vec_n30=c(0.01, 0.003318)
+SpeciesVec_n30 = c(1,2,5,10,20,30)
+
+

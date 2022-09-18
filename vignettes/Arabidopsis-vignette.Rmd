@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
+library(devtools) # Needed to install the PicMin package from Tom's GitHub
+install_github("TBooker/PicMin")
 library(PicMin)
 library(tidyverse)
 library(poolr)
@@ -67,8 +69,7 @@ To compare loci across lineage, it'll be useful to have a naming scheme for loci
 
 
 ```{r get_locus_names}
-## quick function for getting names
-
+## quick function for getting names - this is included in the PicMin package too
 get_names <- function( lineage_df ){
   return( paste( lineage_df$scaff, lineage_df$start,
                  sep = "_") )
@@ -87,7 +88,7 @@ Now, we'll make some stripped down dataframes that contain just the locus names 
 
 ```{r minimise_dataframes}
 
-## quick function for minimising the dataframes
+## quick function for minimising the dataframes - this is included in the PicMin package too
 
 min_lin <- function( lineage_df , lineage_name){
   tmp <- data.frame( emp_p = lineage_df$emp_p,
@@ -132,23 +133,20 @@ _______________________________
 
 # Run PicMin on 5 Lineages
 
-When running PicMin one needs to specify the $\alpha_{Adapt}$ parameter. This parameter is used to screen out loci that do not exhibit evidence of being involved in adaptation in any lineage.Note that the use of PicMin assumes that the genome scan being used provides a test for adaptation! In the paper we show that $\alpha_{Adapt} = 0.05$ is appropriate for a test of 7 lineages, so we'll go with that.
-
 When dealing with real data one will frequently encounter loci that are not present in all lineages. This is easy to deal with in PicMin, we just analyse different levels of missing data separately. 
 
-In the following, we start by analyzing all loci that are present in exactly 7 lineages. 
+In the following, we start by analyzing all loci that are present in exactly 5 lineages. 
 _____________________
 
 The first step is to construct the correlation matrix - the input to poolr
 
 ```{r run_PicMin_constructMatrix}
 
-alpha_a = 0.05
 nLins = 5
 n = 5 # corresponds to the number of lineages present (i.e. no missing data)
 
 # Run 10,000 replicate simulations of this situation and build the correlation matrix for the order statistics from them
-emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, 10000)))
+emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(1.0, n, 0.5, 3, 10000)))
 
 # Calculate the order statistics' p-values for each simulation
 emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, PicMin:::orderStatsPValues))
@@ -170,23 +168,20 @@ Now we will run PicMin on each of the loci that have no missing data. First, we 
 
 ```{r runPicMin_5_lineages}
 
-# Screen out gene with no evidence for adaptation
-lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
-
 # Select the loci that have data for exactly 7 lineages
-lins_p_5_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+lins_p_5 <-  as.matrix(all_lins_p[rowSums(is.na(all_lins_p)) == nLins-n,])
 
 # Make some containers for the PicMin results
 resulting_p <- rep(-1,
-             nrow(lins_p_5_screened))
+             nrow(lins_p_5))
 resulting_n <- rep(-1,
-             nrow(lins_p_5_screened))
+             nrow(lins_p_5))
 
 numReps = 1000 # This is an important parameter - the larger the better, but larger values mean longer run times.
 
 # For each of the lines in the dataframe, perform PicMin
-for (i in seq(nrow(lins_p_5_screened)) ){
-    test_result <- PicMin:::PicMin(na.omit(lins_p_5_screened[i,]),
+for (i in seq(nrow(lins_p_5)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_5[i,]),
                                    null_pMax_cor_unscaled, 
                                    numReps = numReps)
     # Store the p-value
@@ -195,15 +190,15 @@ for (i in seq(nrow(lins_p_5_screened)) ){
 }
 
 
-lins_p_5_screened = data.frame(numLin = n ,
+lins_p_5_result = data.frame(numLin = n ,
                                 p = resulting_p,
                                 q = p.adjust(resulting_p, method = "fdr"),
                                 n_est = resulting_n,
-                                locus = row.names(lins_p_5_screened) )
+                                locus = row.names(lins_p_5) )
 
 
-picMin_results <- cbind( lins_p_5_screened,
-                         read.csv(text=lins_p_5_screened$locus, 
+picMin_results <- cbind( lins_p_5_result,
+                         read.csv(text=row.names(lins_p_5), 
                                   header=FALSE, 
                                   sep = "_",
                                   col.names=c('redundan','scaffold','start'))
@@ -249,23 +244,17 @@ Also, the raw *p*- values are probably not appropriate for this analysis, probab
 
 ```{r runPicMin_5lins_100000reps, fig.width=6}
 
-# Screen out gene with no evidence for adaptation
-lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
-
-# Select the loci that have data for exactly 7 lineages
-lins_p_5_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
-
 # Make some containers for the PicMin results
 resulting_p <- rep(-1,
-             nrow(lins_p_5_screened))
+             nrow(lins_p_5))
 resulting_n <- rep(-1,
-             nrow(lins_p_5_screened))
+             nrow(lins_p_5))
 
 numReps = 100000 ## 100x larger than before
 
 # For each of the lines in the dataframe, perform PicMin
-for (i in seq(nrow(lins_p_5_screened)) ){
-    test_result <- PicMin:::PicMin(na.omit(lins_p_5_screened[i,]),
+for (i in seq(nrow(lins_p_5)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_5[i,]),
                                    null_pMax_cor_unscaled, 
                                    numReps = numReps)
     # Store the p-value
@@ -274,15 +263,15 @@ for (i in seq(nrow(lins_p_5_screened)) ){
 }
 
 
-lins_p_5_screened = data.frame(numLin = n ,
+lins_p_5_result = data.frame(numLin = n ,
                                 p = resulting_p,
                                 q = p.adjust(resulting_p, method = "fdr"),
                                 n_est = resulting_n,
-                                locus = row.names(lins_p_5_screened) )
+                                locus = row.names(lins_p_5) )
 
 
-picMin_results <- cbind( lins_p_5_screened,
-                         read.csv(text=lins_p_5_screened$locus, 
+picMin_results <- cbind( lins_p_5_result,
+                         read.csv(text=row.names(lins_p_5), 
                                   header=FALSE, 
                                   sep = "_",
                                   col.names=c('redundan','scaffold','start'))
@@ -333,7 +322,7 @@ Back on the stats, you'll see that this time we actually plotted the FDR correct
 
 ## Analysing loci with missing data
 
-At this point, we have excluded a lot of data at this point, as we have only analysed loci with results for 5 out of 5 lineages. In the next step, we'll run the analysis on different levels of missing data - I would not suggest analysing data that is only present in only 2 lineages. The way we recommend analysing pairs of species will be covered below.
+At this point, we have excluded a lot of data at this point, as we have only analysed loci with results for 5 out of 5 lineages. In the next step, we'll run the analysis on different levels of missing data - I would not suggest analysing data that is only present in only 2 lineages. The way we recommend analyzing pairs of species will be covered below.
 
 ```{r, fig.width=6}
 count = 0
@@ -352,19 +341,18 @@ for (n in missingDataLevels){
 
 
   # Screen out gene with no evidence for adaptation
-  lins_p_screened <- all_lins_p[ apply(all_lins_p<alpha_a,1,function(x) sum(na.omit(x)))!=0, ]
-  lins_p_n_screened <-  as.matrix(lins_p_screened[rowSums(is.na(lins_p_screened)) == nLins-n,])
+  lins_p_n <-  as.matrix(all_lins_p[rowSums(is.na(all_lins_p)) == nLins-n,])
 
-  if (dim(lins_p_n_screened)[1] ==0){
+  if (dim(lins_p_n)[1] ==0){
     next
   }
   res_p <- rep(-1,
-               nrow(lins_p_n_screened))
+               nrow(lins_p_n))
   res_n <- rep(-1,
-               nrow(lins_p_n_screened))
+               nrow(lins_p_n))
 
-  for (i in seq(nrow(lins_p_n_screened)) ){
-    test_result <- PicMin:::PicMin(na.omit(lins_p_n_screened[i,]), null_pMax_cor_unscaled, numReps = numReps)
+  for (i in seq(nrow(lins_p_n)) ){
+    test_result <- PicMin:::PicMin(na.omit(lins_p_n[i,]), null_pMax_cor_unscaled, numReps = numReps)
     res_p[i] <- test_result$p
     res_n[i] <- test_result$config_est
   }
@@ -372,7 +360,7 @@ for (n in missingDataLevels){
                                 p = res_p,
                                 q = p.adjust(res_p, method = "fdr"),
                                 n_est = res_n,
-                                locus = row.names(lins_p_n_screened) )
+                                locus = row.names(lins_p_n) )
 
 }
 

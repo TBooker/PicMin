@@ -26,7 +26,7 @@ orderStatsPValues <- function(p_list){
 #' @importFrom "poolr" "tippett"
 PicMin <- function(pList, correlationMatrix, numReps = 100000){
   # Calculate the p-value for the order statistics
-  ord_stats_p_values <- orderStatsPValues_fix(pList)
+  ord_stats_p_values <- orderStatsPValues(pList)
   # Apply the Tippett/Dunn-Sidak Correction
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,

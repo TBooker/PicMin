@@ -30,10 +30,7 @@ PicMin <- function(pList, correlationMatrix, numReps = 100000){
   # Apply the Tippett/Dunn-Sidak Correction
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,
-                     side = 1,
-                     size = c(100,1000,10000,100000,1000000),
-                     threshold = c(0.1,0.01,0.001,0.0001, 0.00001)
-                     )$p
+                     side = 1)$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }

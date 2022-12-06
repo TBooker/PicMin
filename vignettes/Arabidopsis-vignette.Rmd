@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(devtools) # Needed to install the PicMin package from Tom's GitHub
-install_github("TBooker/PicMin")
+install_github("TBooker/PicMin", force = T)
 library(PicMin)
 library(tidyverse)
 library(poolr)
@@ -333,7 +333,7 @@ numReps = 100000
 for (n in missingDataLevels){
   count = count + 1
   # Run 10,000 replicate simulations of this situation and build the correlation matrix
-  emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(alpha_a, 0.5, 3, n, numReps)))
+  emp_p_null_dat <- t(replicate(40000, PicMin:::GenerateNullData(1.0, n, 0.5, 3, 10000)))
   # Calculate the order statistics p-values for each simulation
   emp_p_null_dat_unscaled <- t(apply(emp_p_null_dat ,1, PicMin:::orderStatsPValues))
   # Use those p-values to construct the correlation matrix

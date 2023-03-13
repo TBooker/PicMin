@@ -12,7 +12,7 @@ orderStatsPValues <- function(p_list){
   # get a vector of the 'b' parameters for each of the marginal distributions
   the_bs = n+2-the_as
   # calculate the p-values for each of the marginals and return
-  return(pbeta(p_sort, the_as, the_bs))
+  return(pbeta(p_sort, the_as, the_bs))c
 }
 
 
@@ -30,11 +30,11 @@ PicMin <- function(pList, correlationMatrix, numReps = 100000){
   # Apply the Tippett/Dunn-Sidak Correction
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,
-                     side = 1)$p
+                     side = 1,
+                     size = numReps)$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }
-
 
 #' @title Generate data under the null hypothesis
 #' @param adaptation_screen The threshold used to determine adaptation

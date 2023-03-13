@@ -12,7 +12,7 @@ orderStatsPValues <- function(p_list){
   # get a vector of the 'b' parameters for each of the marginal distributions
   the_bs = n+2-the_as
   # calculate the p-values for each of the marginals and return
-  return(pbeta(p_sort, the_as, the_bs))c
+  return(pbeta(p_sort, the_as, the_bs))
 }
 
 

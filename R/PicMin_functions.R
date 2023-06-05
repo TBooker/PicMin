@@ -36,6 +36,27 @@ PicMin <- function(pList, correlationMatrix, numReps = 100000){
               config_est=which.min(ord_stats_p_values)+1))
 }
 
+
+
+#' @title PicMinSteps
+#' @param pList the vector of p-values from your genome scans
+#' @param correlationMatrix the correlation matrix under the null hypothesis
+#' @param numReps the number of replicate draws to perform when building the empirical distributing for calculating the Tippett p-value
+#' @importFrom "poolr" "tippett"
+PicMinSteps <- function(pList, correlationMatrix){
+  # Calculate the p-value for the order statistics
+  ord_stats_p_values <- orderStatsPValues(pList)
+  # Apply the Tippett/Dunn-Sidak Correction
+  p_value <- tippett(ord_stats_p_values, adjust = "empirical",
+                     R = correlationMatrix,
+                     side = 1,
+                     size = c(1e3,1e4,1e5,1e6,1e7,1e8),
+                     threshold = c(0.1,0.01,0.001,0.0001,0.00001,0.000001))$p
+  return(list(p=p_value,
+              config_est=which.min(ord_stats_p_values)+1))
+}
+
+
 #' @title Generate data under the null hypothesis
 #' @param adaptation_screen The threshold used to determine adaptation
 #' @param a the 'a' parameter of a beta distribution of p-values for the false null

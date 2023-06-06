@@ -50,8 +50,8 @@ PicMinSteps <- function(pList, correlationMatrix){
   p_value <- tippett(ord_stats_p_values, adjust = "empirical",
                      R = correlationMatrix,
                      side = 1,
-                     size = c(1e3,1e4,1e5,1e6,1e7,1e8),
-                     threshold = c(0.1,0.01,0.001,0.0001,0.00001,0.000001))$p
+                     size = c(1e3,1e4,1e5,1e6,5e6,
+                     threshold = c(0.1,0.01,0.001,0.0001,0.00001))$p
   return(list(p=p_value,
               config_est=which.min(ord_stats_p_values)+1))
 }
